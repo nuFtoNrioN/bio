@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NOIR</title>
+<meta name="description" content="Trang cá nhân của NOIR">
+<meta property="og:title" content="NOIR">
+<meta property="og:description" content="Trang cá nhân của NOIR">
+<meta name="theme-color" content="#0a0a10">
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+<main class="wrap">
+  <section class="profile">
+    <img id="avatar" class="avatar hidden" alt="">
+    <h1 id="name">NOIR</h1>
+    <p id="bio" class="bio"></p>
+  </section>
+
+  <nav id="links" class="links"></nav>
+
+  <section id="scriptsSection" class="hidden">
+    <h2>Script của tui</h2>
+    <div id="scripts"></div>
+  </section>
+
+  <footer>© <span id="year"></span> NOIR</footer>
+</main>
+
+<script>
+// Mọi dữ liệu người dùng đều đi qua textContent / setAttribute, không dùng innerHTML.
+const $ = (s) => document.querySelector(s);
+const STATUS_LABEL = { working: 'Đang chạy', patched: 'Đã bị patch', outdated: 'Cũ' };
+
+function el(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') e.className = v;
+    else if (k === 'text') e.textContent = v;
+    else e.setAttribute(k, v);
+  }
+  kids.forEach((c) => e.append(c));
+  return e;
+}
+function safeUrl(u) {
+  try { const x = new URL(u); return x.protocol === 'https:' ? x.href : null; } catch { return null; }
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch {
+    const t = el('textarea'); t.value = text; document.body.append(t); t.select();
+    const ok = document.execCommand('copy'); t.remove(); return ok;
+  }
+}
+
+function render(data) {
+  const { profile, links, scripts } = data;
+  $('#name').textContent = profile.name || 'NOIR';
+  document.title = profile.name || 'NOIR';
+  $('#bio').textContent = profile.bio || '';
+  const av = profile.avatar_url && safeUrl(profile.avatar_url);
+  if (av) { $('#avatar').src = av; $('#avatar').classList.remove('hidden'); }
+
+  const box = $('#links'); box.replaceChildren();
+  links.forEach((l) => {
+    const href = safeUrl(l.url); if (!href) return;
+    const a = el('a', { class: 'link', href, target: '_blank', rel: 'noopener noreferrer' });
+    if (l.icon) a.append(el('span', { text: l.icon }));
+    a.append(el('span', { text: l.label }));
+    box.append(a);
+  });
+
+  const list = $('#scripts'); list.replaceChildren();
+  $('#scriptsSection').classList.toggle('hidden', !scripts.length);
+  scripts.forEach((s) => {
+    const cmd = `loadstring(game:HttpGet("${location.origin}/raw/${s.id}"))()`;
+    const btn = el('button', { class: 'btn small primary', type: 'button', text: 'Copy loadstring' });
+    btn.addEventListener('click', async () => {
+      if (await copyText(cmd)) {
+        btn.textContent = 'Đã copy ✓';
+        fetch('/api/copy/' + s.id, { method: 'POST' }).catch(() => {});
+        setTimeout(() => (btn.textContent = 'Copy loadstring'), 1500);
+      }
+    });
+    const meta = [s.game, s.runs ? s.runs + ' lượt chạy' : ''].filter(Boolean).join(' · ');
+    const card = el('div', { class: 'card' },
+      el('div', { class: 'card-head' },
+        el('div', {}, el('h3', { text: s.title }), meta ? el('div', { class: 'meta', text: meta }) : ''),
+        el('span', { class: 'badge ' + (STATUS_LABEL[s.status] ? s.status : 'working'), text: STATUS_LABEL[s.status] || s.status })
+      ),
+      s.description ? el('p', { class: 'desc', text: s.description }) : el('div', { style: 'height:10px' }),
+      btn
+    );
+    list.append(card);
+  });
+}
+
+$('#year').textContent = new Date().getFullYear();
+fetch('/api/site').then((r) => r.json()).then(render).catch(() => {
+  $('#bio').textContent = 'Không tải được dữ liệu, thử lại sau nhé.';
+});
+navigator.sendBeacon && navigator.sendBeacon('/api/hit');
+</script>
+</body>
+</html>
