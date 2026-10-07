@@ -1,0 +1,20 @@
+name = "noir-personal"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "noir-personal"
+database_id = "b8cd55bc-4360-4fad-92c2-0da3baf2d3b7"
+
+# Khoá trang admin bằng Cloudflare Access (khuyên dùng, cần domain riêng trên Cloudflare).
+# Để trống nếu dùng chế độ ADMIN_TOKEN. Hai giá trị này KHÔNG phải bí mật.
+[vars]
+ACCESS_TEAM_DOMAIN = ""   # ví dụ: tenban.cloudflareaccess.com
+ACCESS_AUD = ""           # "Application Audience (AUD) Tag" của app Access
+ADMIN_EMAIL = "noirnotfun@gmail.com"          # (tuỳ chọn) chỉ cho đúng email này, ví dụ: ban@gmail.com

@@ -1,0 +1,2 @@
+# Copy thành .dev.vars khi chạy local (wrangler dev). KHÔNG commit file .dev.vars.
+DEV_ADMIN_BYPASS=1
