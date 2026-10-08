@@ -19,8 +19,8 @@ export default {
         return new Response(null, { status: 204 });
       }
 
-      m = path.match(/^\/raw\/([a-z0-9-]{2,40})$/);
-      if (m && (method === 'GET' || method === 'HEAD')) return await rawScript(env, ctx, m[1], method);
+      m = path.match(/^\/api\/code\/([a-z0-9-]{2,40})$/);
+      if (m && method === 'GET') return await codeOf(env, ctx, m[1]);
 
       return env.ASSETS.fetch(request);
     } catch (e) {
@@ -58,26 +58,26 @@ async function bump(env, kind, scriptId) {
 }
 
 async function publicSite(env) {
-  const [p, l, s] = await env.DB.batch([
+  const [p, t, l, s] = await env.DB.batch([
     env.DB.prepare('SELECT name, bio, avatar_url FROM profile WHERE id = 1'),
-    env.DB.prepare('SELECT label, url, icon FROM links ORDER BY sort, id'),
-    env.DB.prepare('SELECT id, title, description, game, status, runs, updated_at FROM scripts WHERE published = 1 ORDER BY updated_at DESC'),
+    env.DB.prepare('SELECT id, name, kind FROM tabs ORDER BY sort, id'),
+    env.DB.prepare('SELECT label, url, icon, tab_id FROM links ORDER BY sort, id'),
+    env.DB.prepare('SELECT id, title, description, game, image_url, status, runs, copies, tab_id, updated_at FROM scripts WHERE published = 1 ORDER BY updated_at DESC'),
   ]);
   return json(
-    { profile: p.results[0] || { name: 'NOIR', bio: '', avatar_url: '' }, links: l.results, scripts: s.results },
+    {
+      profile: p.results[0] || { name: 'NOIR', bio: '', avatar_url: '' },
+      tabs: t.results, links: l.results, scripts: s.results,
+      raw_url: (env.RAW_URL || '').replace(/\/$/, ''),
+    },
     200,
     { 'Cache-Control': 'public, max-age=60' }
   );
 }
 
-async function rawScript(env, ctx, id, method) {
+async function codeOf(env, ctx, id) {
   const row = await env.DB.prepare('SELECT code FROM scripts WHERE id = ? AND published = 1').bind(id).first();
-  const headers = {
-    'Content-Type': 'text/plain; charset=utf-8',
-    'Cache-Control': 'no-cache',
-    'X-Content-Type-Options': 'nosniff',
-  };
-  if (!row) return new Response('-- Script không tồn tại hoặc chưa công khai', { status: 404, headers });
-  if (method === 'GET') ctx.waitUntil(bump(env, 'run', id));
-  return new Response(method === 'HEAD' ? null : row.code, { headers });
+  if (!row) return new Response('Not found', { status: 404 });
+  ctx.waitUntil(bump(env, 'copy', id));
+  return new Response(row.code, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
 }
