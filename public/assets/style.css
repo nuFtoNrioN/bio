@@ -109,3 +109,4 @@ dialog::backdrop{background:rgba(5,4,10,.75)}
 #dbody{padding:18px}.dimg{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;margin-bottom:14px}
 .cmd{background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font:13px/1.5 ui-monospace,Menlo,monospace;overflow-x:auto;margin:12px 0;white-space:pre}
 .dact{display:flex;gap:8px;flex-wrap:wrap}.dact .btn{flex:1 1 auto}
+dialog{margin:auto}
