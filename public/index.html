@@ -6,7 +6,6 @@
 <title>NOIR</title>
 <meta name="description" content="Trang cá nhân của NOIR">
 <meta property="og:title" content="NOIR">
-<meta property="og:description" content="Trang cá nhân của NOIR">
 <meta name="theme-color" content="#0a0a10">
 <link rel="stylesheet" href="/assets/style.css">
 </head>
@@ -17,90 +16,69 @@
     <h1 id="name">NOIR</h1>
     <p id="bio" class="bio"></p>
   </section>
-
-  <nav id="links" class="links"></nav>
-
-  <section id="scriptsSection" class="hidden">
-    <h2>Script của tui</h2>
-    <div id="scripts"></div>
-  </section>
-
+  <div id="tabs" class="tabs hidden" role="tablist"></div>
+  <div id="panel"></div>
   <footer>© <span id="year"></span> NOIR</footer>
 </main>
-
+<dialog id="dlg"><div id="dbody"></div></dialog>
+<div id="toast" class="toast hidden"></div>
 <script>
-// Mọi dữ liệu người dùng đều đi qua textContent / setAttribute, không dùng innerHTML.
-const $ = (s) => document.querySelector(s);
-const STATUS_LABEL = { working: 'Đang chạy', patched: 'Đã bị patch', outdated: 'Cũ' };
+const $=(s)=>document.querySelector(s);
+const ST={working:['Đang chạy','working'],patched:['Đã bị patch','patched'],outdated:['Cũ','outdated']};
+function el(tag,attrs={},...kids){const e=document.createElement(tag);for(const[k,v]of Object.entries(attrs)){if(k==='class')e.className=v;else if(k==='text')e.textContent=v;else if(k.startsWith('on'))e.addEventListener(k.slice(2),v);else e.setAttribute(k,v)}kids.forEach(c=>e.append(c));return e}
+const safeUrl=(u)=>{try{const x=new URL(u);return x.protocol==='https:'?x.href:null}catch{return null}};
+async function copyText(t){try{await navigator.clipboard.writeText(t);return true}catch{const a=el('textarea');a.value=t;document.body.append(a);a.select();const ok=document.execCommand('copy');a.remove();return ok}}
+function flash(b,t){const o=b.dataset.o||b.textContent;b.dataset.o=o;b.textContent=t;setTimeout(()=>b.textContent=o,1500)}
+let D,TAB;
+const eff=(it,kind)=>{const ts=D.tabs.filter(t=>t.kind===kind);return(ts.find(t=>t.id===it.tab_id)||ts[0]||{}).id};
+const rawUrl=(s)=>D.raw_url?D.raw_url+'/'+s.id:'';
+const cmdOf=(s)=>'loadstring(game:HttpGet("'+rawUrl(s)+'"))()';
 
-function el(tag, attrs = {}, ...kids) {
-  const e = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === 'class') e.className = v;
-    else if (k === 'text') e.textContent = v;
-    else e.setAttribute(k, v);
-  }
-  kids.forEach((c) => e.append(c));
-  return e;
-}
-function safeUrl(u) {
-  try { const x = new URL(u); return x.protocol === 'https:' ? x.href : null; } catch { return null; }
-}
-async function copyText(text) {
-  try { await navigator.clipboard.writeText(text); return true; }
-  catch {
-    const t = el('textarea'); t.value = text; document.body.append(t); t.select();
-    const ok = document.execCommand('copy'); t.remove(); return ok;
-  }
-}
+async function copyCode(s,btn){try{const r=await fetch('/api/code/'+s.id);if(!r.ok)throw 0;flash(btn,(await copyText(await r.text()))?'Đã copy code':'Không copy được')}catch{flash(btn,'Lỗi, thử lại')}}
+function copyCmd(s,btn){copyText(cmdOf(s)).then(ok=>flash(btn,ok?'Đã copy lệnh':'Không copy được'));fetch('/api/copy/'+s.id,{method:'POST'}).catch(()=>{})}
+const rawLink=(s,cls)=>safeUrl(rawUrl(s))?el('a',{class:cls,href:safeUrl(rawUrl(s)),target:'_blank',rel:'noopener noreferrer',text:'Raw',onclick:e=>e.stopPropagation()}):'';
 
-function render(data) {
-  const { profile, links, scripts } = data;
-  $('#name').textContent = profile.name || 'NOIR';
-  document.title = profile.name || 'NOIR';
-  $('#bio').textContent = profile.bio || '';
-  const av = profile.avatar_url && safeUrl(profile.avatar_url);
-  if (av) { $('#avatar').src = av; $('#avatar').classList.remove('hidden'); }
+function card(s){
+  const st=ST[s.status]||ST.working,img=safeUrl(s.image_url);
+  const cb=el('button',{class:'btn small primary',type:'button',text:'Copy code',onclick:(e)=>{e.stopPropagation();copyCode(s,cb)}});
+  const c=el('article',{class:'scard',tabindex:'0',role:'button','aria-label':'Xem chi tiết '+s.title},
+    img?el('img',{class:'thumb',src:img,alt:'',loading:'lazy'}):'',
+    el('div',{class:'sbody'},
+      el('div',{class:'card-head'},el('div',{},el('h3',{text:s.title}),s.game?el('div',{class:'meta',text:s.game}):''),el('span',{class:'badge '+st[1],text:st[0]})),
+      s.description?el('p',{class:'desc',text:s.description}):el('div',{style:'height:8px'}),
+      el('div',{class:'sact'},cb,rawLink(s,'btn small'))));
+  c.onclick=()=>openDlg(s);c.onkeydown=(e)=>{if(e.key==='Enter'&&e.target===c)openDlg(s)};
+  return c}
 
-  const box = $('#links'); box.replaceChildren();
-  links.forEach((l) => {
-    const href = safeUrl(l.url); if (!href) return;
-    const a = el('a', { class: 'link', href, target: '_blank', rel: 'noopener noreferrer' });
-    if (l.icon) a.append(el('span', { text: l.icon }));
-    a.append(el('span', { text: l.label }));
-    box.append(a);
-  });
+function openDlg(s){
+  const d=$('#dlg'),b=$('#dbody'),st=ST[s.status]||ST.working,img=safeUrl(s.image_url);b.replaceChildren();
+  const cc=el('button',{class:'btn primary',type:'button',text:'Copy code',onclick:()=>copyCode(s,cc)});
+  const cl=el('button',{class:'btn',type:'button',text:'Copy lệnh loadstring',onclick:()=>copyCmd(s,cl)});
+  b.append(img?el('img',{class:'dimg',src:img,alt:''}):'',
+    el('div',{class:'card-head'},el('h3',{text:s.title}),el('span',{class:'badge '+st[1],text:st[0]})),
+    s.game?el('div',{class:'meta',text:s.game}):'',
+    s.description?el('p',{class:'desc',style:'white-space:pre-line',text:s.description}):'',
+    el('div',{class:'meta',text:s.runs+' lượt chạy, '+s.copies+' lượt copy, cập nhật '+new Date(s.updated_at).toLocaleDateString('vi-VN')}),
+    D.raw_url?el('pre',{class:'cmd',text:cmdOf(s)}):'',
+    el('div',{class:'dact'},cc,D.raw_url?cl:'',rawLink(s,'btn'),el('button',{class:'btn',type:'button',text:'Đóng',onclick:()=>d.close()})));
+  d.showModal()}
+$('#dlg').addEventListener('click',(e)=>{if(e.target===e.currentTarget)e.currentTarget.close()});
 
-  const list = $('#scripts'); list.replaceChildren();
-  $('#scriptsSection').classList.toggle('hidden', !scripts.length);
-  scripts.forEach((s) => {
-    const cmd = `loadstring(game:HttpGet("${location.origin}/raw/${s.id}"))()`;
-    const btn = el('button', { class: 'btn small primary', type: 'button', text: 'Copy loadstring' });
-    btn.addEventListener('click', async () => {
-      if (await copyText(cmd)) {
-        btn.textContent = 'Đã copy ✓';
-        fetch('/api/copy/' + s.id, { method: 'POST' }).catch(() => {});
-        setTimeout(() => (btn.textContent = 'Copy loadstring'), 1500);
-      }
-    });
-    const meta = [s.game, s.runs ? s.runs + ' lượt chạy' : ''].filter(Boolean).join(' · ');
-    const card = el('div', { class: 'card' },
-      el('div', { class: 'card-head' },
-        el('div', {}, el('h3', { text: s.title }), meta ? el('div', { class: 'meta', text: meta }) : ''),
-        el('span', { class: 'badge ' + (STATUS_LABEL[s.status] ? s.status : 'working'), text: STATUS_LABEL[s.status] || s.status })
-      ),
-      s.description ? el('p', { class: 'desc', text: s.description }) : el('div', { style: 'height:10px' }),
-      btn
-    );
-    list.append(card);
-  });
-}
+function drawTabs(){const n=$('#tabs');
+  n.replaceChildren(...D.tabs.map(t=>el('button',{class:'tab'+(t.id===TAB?' active':''),role:'tab','aria-selected':String(t.id===TAB),type:'button',text:t.name,onclick:()=>{TAB=t.id;drawTabs();drawPanel()}})));
+  n.classList.toggle('hidden',D.tabs.length<2)}
+function drawPanel(){const t=D.tabs.find(x=>x.id===TAB),p=$('#panel');p.replaceChildren();if(!t)return;
+  const items=t.kind==='social'?D.links.filter(l=>eff(l,'social')===t.id):D.scripts.filter(s=>eff(s,'script')===t.id);
+  if(!items.length){p.append(el('div',{class:'empty',text:'Chưa có gì ở tab này.'}));return}
+  if(t.kind==='social'){const box=el('div',{class:'links'});items.forEach(l=>{const href=safeUrl(l.url);if(!href)return;const a=el('a',{class:'link',href,target:'_blank',rel:'noopener noreferrer'});if(l.icon)a.append(el('span',{text:l.icon}));a.append(el('span',{text:l.label}));box.append(a)});p.append(box)}
+  else{const g=el('div',{class:'grid'});items.forEach(s=>g.append(card(s)));p.append(g)}}
 
-$('#year').textContent = new Date().getFullYear();
-fetch('/api/site').then((r) => r.json()).then(render).catch(() => {
-  $('#bio').textContent = 'Không tải được dữ liệu, thử lại sau nhé.';
-});
-navigator.sendBeacon && navigator.sendBeacon('/api/hit');
+function render(d){D=d;const pr=d.profile;$('#name').textContent=pr.name||'NOIR';document.title=pr.name||'NOIR';$('#bio').textContent=pr.bio||'';
+  const av=pr.avatar_url&&safeUrl(pr.avatar_url);if(av){$('#avatar').src=av;$('#avatar').classList.remove('hidden')}
+  if(!TAB||!d.tabs.some(t=>t.id===TAB))TAB=(d.tabs[0]||{}).id;drawTabs();drawPanel()}
+$('#year').textContent=new Date().getFullYear();
+fetch('/api/site').then(r=>r.json()).then(render).catch(()=>{$('#bio').textContent='Không tải được dữ liệu, thử lại sau nhé.'});
+navigator.sendBeacon&&navigator.sendBeacon('/api/hit');
 </script>
 </body>
 </html>
