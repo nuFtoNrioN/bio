@@ -11,3 +11,6 @@ run_worker_first = true
 binding = "DB"
 database_name = "noir-personal"
 database_id = "b8cd55bc-4360-4fad-92c2-0da3baf2d3b7"
+
+[vars]
+RAW_URL = "https://raw.noirnotfun.workers.dev"
