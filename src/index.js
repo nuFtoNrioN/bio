@@ -64,8 +64,11 @@ async function publicSite(env) {
     env.DB.prepare('SELECT label, url, icon, tab_id FROM links ORDER BY sort, id'),
     env.DB.prepare('SELECT id, title, description, game, image_url, status, runs, copies, tab_id, updated_at FROM scripts WHERE published = 1 ORDER BY updated_at DESC'),
   ]);
+  let settings = {};
+  try { const r = await env.DB.prepare('SELECT data FROM site_settings WHERE id = 1').first(); settings = r ? JSON.parse(r.data) : {}; } catch (e) { /* chưa chạy migration 002 */ }
   return json(
     {
+      settings,
       profile: p.results[0] || { name: 'NOIR', bio: '', avatar_url: '' },
       tabs: t.results, links: l.results, scripts: s.results,
       raw_url: (env.RAW_URL || '').replace(/\/$/, ''),
