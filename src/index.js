@@ -1,4 +1,6 @@
-const TZ_OFFSET_HOURS = 7;
+// BIO worker: trang công khai + API đọc + raw script + đếm thống kê.
+// Không có bất kỳ route ghi dữ liệu admin nào ở đây.
+const TZ_OFFSET_HOURS = 7; // múi giờ chia thống kê theo ngày (phải giống bên dash)
 
 export default {
   async fetch(request, env, ctx) {
@@ -57,9 +59,17 @@ async function bump(env, kind, scriptId) {
   try { await env.DB.batch(stmts); } catch (e) { console.error('bump', e); }
 }
 
+async function getProfile(env) {
+  let row;
+  try { row = await env.DB.prepare('SELECT name, bio, avatar_url, extra FROM profile WHERE id = 1').first(); }
+  catch (e) { row = await env.DB.prepare('SELECT name, bio, avatar_url FROM profile WHERE id = 1').first(); }
+  if (!row) return { name: 'NOIR', bio: '', avatar_url: '' };
+  let ex = {}; try { ex = JSON.parse(row.extra || '{}'); } catch (e) { /* bỏ qua */ }
+  return { ...ex, name: row.name, bio: row.bio, avatar_url: row.avatar_url };
+}
+
 async function publicSite(env) {
-  const [p, t, l, s] = await env.DB.batch([
-    env.DB.prepare('SELECT name, bio, avatar_url FROM profile WHERE id = 1'),
+  const [t, l, s] = await env.DB.batch([
     env.DB.prepare('SELECT id, name, kind FROM tabs ORDER BY sort, id'),
     env.DB.prepare('SELECT label, url, icon, tab_id FROM links ORDER BY sort, id'),
     env.DB.prepare('SELECT id, title, description, game, image_url, status, runs, copies, tab_id, updated_at FROM scripts WHERE published = 1 ORDER BY updated_at DESC'),
@@ -69,7 +79,7 @@ async function publicSite(env) {
   return json(
     {
       settings,
-      profile: p.results[0] || { name: 'NOIR', bio: '', avatar_url: '' },
+      profile: await getProfile(env),
       tabs: t.results, links: l.results, scripts: s.results,
       raw_url: (env.RAW_URL || '').replace(/\/$/, ''),
     },
@@ -78,6 +88,7 @@ async function publicSite(env) {
   );
 }
 
+// Nút "Copy code": trả code của script đã công khai, tính 1 lượt copy
 async function codeOf(env, ctx, id) {
   const row = await env.DB.prepare('SELECT code FROM scripts WHERE id = ? AND published = 1').bind(id).first();
   if (!row) return new Response('Not found', { status: 404 });
