@@ -68,10 +68,41 @@ async function getProfile(env) {
   return { ...ex, name: row.name, bio: row.bio, avatar_url: row.avatar_url };
 }
 
+async function getLinks(env) {
+  try { return (await env.DB.prepare('SELECT label, url, icon, tab_id, note FROM links ORDER BY sort, id').all()).results; }
+  catch (e) { return (await env.DB.prepare('SELECT label, url, icon, tab_id FROM links ORDER BY sort, id').all()).results; }
+}
+
+// Thông tin Discord trực tiếp: lấy từ link mời máy chủ (discord.gg/xxxx), cache khoảng 10 phút
+function inviteCode(u) {
+  try {
+    const x = new URL(u), h = x.hostname.replace(/^www\./, '');
+    let c = '';
+    if (h === 'discord.gg') c = x.pathname.split('/')[1] || '';
+    else if (h === 'discord.com' || h === 'discordapp.com') { const p = x.pathname.split('/'); if (p[1] === 'invite') c = p[2] || ''; }
+    return /^[A-Za-z0-9-]{2,32}$/.test(c) ? c : '';
+  } catch (e) { return ''; }
+}
+
+async function withDiscord(links) {
+  let n = 0;
+  return Promise.all(links.map(async (l) => {
+    const code = inviteCode(l.url);
+    if (!code || n++ >= 3) return l;
+    try {
+      const r = await fetch('https://discord.com/api/v10/invites/' + code + '?with_counts=true', { cf: { cacheTtl: 600, cacheEverything: true }, signal: AbortSignal.timeout(2500) });
+      if (!r.ok) return l;
+      const j = await r.json();
+      if (!j.guild) return l;
+      const g = j.guild;
+      return { ...l, info: { name: g.name, icon: g.icon ? 'https://cdn.discordapp.com/icons/' + g.id + '/' + g.icon + '.png?size=96' : '', members: j.approximate_member_count || 0, online: j.approximate_presence_count || 0 } };
+    } catch (e) { return l; }
+  }));
+}
+
 async function publicSite(env) {
-  const [t, l, s] = await env.DB.batch([
+  const [t, s] = await env.DB.batch([
     env.DB.prepare('SELECT id, name, kind FROM tabs ORDER BY sort, id'),
-    env.DB.prepare('SELECT label, url, icon, tab_id FROM links ORDER BY sort, id'),
     env.DB.prepare('SELECT id, title, description, game, image_url, status, runs, copies, tab_id, updated_at FROM scripts WHERE published = 1 ORDER BY updated_at DESC'),
   ]);
   let settings = {};
@@ -80,7 +111,7 @@ async function publicSite(env) {
     {
       settings,
       profile: await getProfile(env),
-      tabs: t.results, links: l.results, scripts: s.results,
+      tabs: t.results, links: await withDiscord(await getLinks(env)), scripts: s.results,
       raw_url: (env.RAW_URL || '').replace(/\/$/, ''),
     },
     200,
