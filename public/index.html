@@ -27,7 +27,7 @@
 <script>
 const $=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)];
 const ST={working:['Đang chạy','working'],patched:['Đã bị patch','patched'],outdated:['Cũ','outdated']};
-const IC={arrow:'M7 17L17 7M9 7h8v8',play:'M8 5v14l11-7z',copy:'M9 9h10v10H9zM5 15V5h10',code:'M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14',x:'M6 6l12 12M18 6L6 18'};
+const IC={arrow:'M7 17L17 7M9 7h8v8',play:'M8 5v14l11-7z',copy:'M9 9h10v10H9zM5 15V5h10',code:'M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14',x:'M6 6l12 12M18 6L6 18',users:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8'};
 function ic(d,c=''){const N='http://www.w3.org/2000/svg',s=document.createElementNS(N,'svg'),p=document.createElementNS(N,'path');s.setAttribute('viewBox','0 0 24 24');s.setAttribute('class','i '+c);p.setAttribute('d',d);s.append(p);return s}
 function el(tag,attrs={},...kids){const e=document.createElement(tag);for(const[k,v]of Object.entries(attrs)){if(k==='class')e.className=v;else if(k==='text')e.textContent=v;else if(k.startsWith('on'))e.addEventListener(k.slice(2),v);else e.setAttribute(k,v)}kids.forEach(c=>e.append(c));return e}
 const safeUrl=(u)=>{try{const x=new URL(u);return x.protocol==='https:'?x.href:null}catch{return null}};
@@ -89,8 +89,11 @@ function drawPanel(){const t=D.tabs.find(x=>x.id===TAB),p=$('#panel');p.replaceC
   if(t.kind==='social'){const box=el('div',{class:'links'});items.forEach((l,i)=>{const href=safeUrl(l.url);if(!href)return;
     const slug=(l.icon||'').startsWith('si:')?l.icon.slice(3):'',ib=el('span',{class:'lk-ic'});
     const a=el('a',{class:'link sp rp rv',href,target:'_blank',rel:'noopener noreferrer'});
-    if(PLAT[slug]){const im=el('img',{class:'lk-i',src:'https://cdn.simpleicons.org/'+slug+'/white',alt:'',loading:'lazy'});im.addEventListener('error',()=>im.remove());ib.append(im);a.style.setProperty('--bc',PLAT[slug][1])}else ib.textContent=l.icon||'🔗';
-    a.append(ib,el('span',{class:'lk-tx'},el('b',{text:l.label}),el('small',{text:host(href)})),ic(IC.arrow,'lk-ar'));a.style.setProperty('--i',i+2);box.append(a)});p.append(box)}
+    const info=l.info,av=info&&info.icon&&safeUrl(info.icon);if(PLAT[slug])a.style.setProperty('--bc',PLAT[slug][1]);
+    if(av)ib.append(el('img',{class:'lk-av',src:av,alt:'',loading:'lazy'}));else if(PLAT[slug]){const im=el('img',{class:'lk-i',src:'https://cdn.simpleicons.org/'+slug+'/white',alt:'',loading:'lazy'});im.addEventListener('error',()=>im.remove());ib.append(im)}else ib.textContent=l.icon||'🔗';
+    a.append(ib,el('span',{class:'lk-tx'},el('b',{text:l.label}),el('small',{text:info?info.name:host(href)})),ic(IC.arrow,'lk-ar'));
+    if(l.note)a.append(el('p',{class:'lk-note',text:l.note}));
+    if(info)a.append(el('div',{class:'lk-st'},el('span',{},el('i',{class:'on'}),(info.online||0).toLocaleString('vi-VN')+' online'),el('span',{},ic(IC.users),(info.members||0).toLocaleString('vi-VN')+' thành viên')));a.style.setProperty('--i',i+2);box.append(a)});p.append(box)}
   else{const g=el('div',{class:'grid'});items.forEach((s,i)=>g.append(card(s,i)));p.append(g)}}
 
 function render(d){D=d;applyLook(d.settings,'bio');const pr=d.profile;$('#prof').replaceChildren(buildProfile(pr));document.title=pr.name||'NOIR';startFx(pr.effect);
