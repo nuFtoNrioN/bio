@@ -35,7 +35,7 @@
     '.fr-pulse::before{animation:pfpulse 2s ease-in-out infinite}',
     '.fr-double::before{inset:-5px;box-shadow:0 0 0 4px #0f0d16,0 0 0 7px ' + FC + '}',
     '@keyframes pfspin{to{transform:rotate(360deg)}}@keyframes pfpulse{50%{box-shadow:0 0 22px ' + FC + ';transform:scale(1.05)}}',
-    '.pf-fo{position:absolute;inset:-18%;width:136%;height:136%;z-index:2;pointer-events:none;object-fit:contain}',
+    '.pf-fo{position:absolute;left:50%;top:50%;width:calc(var(--fs,130)*1%);height:calc(var(--fs,130)*1%);transform:translate(-50%,-50%);z-index:2;pointer-events:none;object-fit:contain}',
     '.pf-nm{font-size:24px;font-weight:700;line-height:1.2}.pf-tg{color:#938da8;margin-top:2px}',
     '.pf-meta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;color:#938da8;font-size:13px;margin-top:6px}',
     '.pf-st{display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:4px 12px;border:1px solid #302c43;border-radius:99px;font-size:13px;background:rgba(27,25,37,.6)}',
@@ -51,6 +51,66 @@
   var el = function (t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
   var cssUrl = function (u) { return 'url("' + u.replace(/"/g, '%22').replace(/\\/g, '%5C') + '")'; };
 
+  // ---------- thư viện khung avatar (ảnh SVG vẽ sẵn, kiểu Discord decoration) ----------
+  var SV = function (i) { return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">' + i + '</svg>'; };
+  var pt = function (a, r) { return [60 + r * Math.cos(a * Math.PI / 180), 60 + r * Math.sin(a * Math.PI / 180)]; };
+  var f1 = function (n) { return n.toFixed(1); };
+  var STAR = 'M0 -5 L1.4 -1.4 L5 0 L1.4 1.4 L0 5 L-1.4 1.4 L-5 0 L-1.4 -1.4Z';
+  var flower = function (a, r, s) {
+    var p = pt(a, r), o = '<g transform="translate(' + f1(p[0]) + ' ' + f1(p[1]) + ') scale(' + s + ')">';
+    for (var k = 0; k < 5; k++) o += '<ellipse cx="0" cy="-5" rx="3.6" ry="5.2" fill="#ffb7d5" stroke="#f08ab4" stroke-width=".6" transform="rotate(' + k * 72 + ')"/>';
+    return o + '<circle r="1.9" fill="#ffe08a"/></g>';
+  };
+  var DECOS = [
+    ['halo', 'Quầng sáng', function () {
+      return SV('<defs><filter id="g"><feGaussianBlur stdDeviation="1.8"/></filter></defs><ellipse cx="60" cy="9" rx="25" ry="7" fill="none" stroke="#ffe066" stroke-width="5" filter="url(#g)" opacity=".8"/><ellipse cx="60" cy="9" rx="25" ry="7" fill="none" stroke="#fff3b0" stroke-width="2.6"><animate attributeName="opacity" values="1;.6;1" dur="3s" repeatCount="indefinite"/></ellipse>');
+    }],
+    ['cat', 'Tai mèo', function () {
+      return SV('<path d="M18 46 L20 6 L50 22 Z" fill="#2c2840" stroke="#8f7bd6" stroke-width="2" stroke-linejoin="round"/><path d="M24 36 L25 15 L40 24 Z" fill="#ff9ec8"/><path d="M102 46 L100 6 L70 22 Z" fill="#2c2840" stroke="#8f7bd6" stroke-width="2" stroke-linejoin="round"/><path d="M96 36 L95 15 L80 24 Z" fill="#ff9ec8"/>');
+    }],
+    ['bunny', 'Tai thỏ', function () {
+      return SV('<ellipse cx="40" cy="8" rx="8.5" ry="24" transform="rotate(-14 40 8)" fill="#f6f1ff" stroke="#cdbff0" stroke-width="1.6"/><ellipse cx="40" cy="9" rx="4" ry="16" transform="rotate(-14 40 8)" fill="#ffb5d3"/><ellipse cx="80" cy="8" rx="8.5" ry="24" transform="rotate(14 80 8)" fill="#f6f1ff" stroke="#cdbff0" stroke-width="1.6"/><ellipse cx="80" cy="9" rx="4" ry="16" transform="rotate(14 80 8)" fill="#ffb5d3"/>');
+    }],
+    ['horns', 'Sừng quỷ', function () {
+      return SV('<path d="M30 30 C18 24 16 8 28 2 C27 12 33 18 42 22 Z" fill="#d6293a" stroke="#7d1020" stroke-width="1.5" stroke-linejoin="round"/><path d="M90 30 C102 24 104 8 92 2 C93 12 87 18 78 22 Z" fill="#d6293a" stroke="#7d1020" stroke-width="1.5" stroke-linejoin="round"/>');
+    }],
+    ['crown', 'Vương miện', function () {
+      return SV('<path d="M36 24 L40 5 L52 17 L60 2 L68 17 L80 5 L84 24 Z" fill="#ffcf40" stroke="#b8860b" stroke-width="2" stroke-linejoin="round"/><circle cx="60" cy="14" r="2.6" fill="#ff5d73"/><circle cx="43" cy="17" r="2" fill="#6ec1ff"/><circle cx="77" cy="17" r="2" fill="#6ec1ff"/>');
+    }],
+    ['laurel', 'Vòng nguyệt quế', function () {
+      var o = '';
+      [1, -1].forEach(function (sd) {
+        for (var i = 0; i < 9; i++) {
+          var a = 100 + i * 17, aa = sd > 0 ? a : 180 - a, p = pt(aa, 52);
+          o += '<ellipse cx="' + f1(p[0]) + '" cy="' + f1(p[1]) + '" rx="3.4" ry="8" transform="rotate(' + (aa + 90 + (sd > 0 ? -28 : 28)) + ' ' + f1(p[0]) + ' ' + f1(p[1]) + ')" fill="' + (i % 2 ? '#4f9d5a' : '#6fbf6a') + '"/>';
+        }
+      });
+      return SV(o);
+    }],
+    ['stars', 'Sao quay quanh', function () {
+      var o = '';
+      for (var i = 0; i < 8; i++) {
+        var p = pt(i * 45 + 20, 53 + (i % 2) * 3);
+        o += '<path d="' + STAR + '" transform="translate(' + f1(p[0]) + ' ' + f1(p[1]) + ') scale(' + (i % 2 ? .8 : 1.15) + ')" fill="#fff6c2"><animate attributeName="opacity" values=".2;1;.2" dur="2.4s" begin="-' + (i * .3).toFixed(1) + 's" repeatCount="indefinite"/></path>';
+      }
+      return SV(o);
+    }],
+    ['blossom', 'Hoa anh đào', function () {
+      return SV(flower(-55, 52, 1.2) + flower(-30, 57, .8) + flower(-125, 57, .75) + flower(150, 54, 1) + flower(122, 52, .7));
+    }],
+    ['wings', 'Cánh thiên thần', function () {
+      var w = '<path d="M14 58 C-4 50 -4 22 10 10 C10 24 20 34 28 40 Z" fill="#fff" stroke="#cfd8ff" stroke-width="1.4"/><path d="M16 72 C2 70 -2 50 6 38 C10 50 18 56 26 58 Z" fill="#f2f5ff" stroke="#cfd8ff" stroke-width="1.4"/>';
+      return SV(w + '<g transform="translate(120 0) scale(-1 1)">' + w + '</g>');
+    }]
+  ];
+  window.PF_DECOS = DECOS.map(function (d) { return { id: d[0], name: d[1], uri: 'data:image/svg+xml,' + encodeURIComponent(d[2]()) }; });
+  var decoUrl = function (p) {
+    var d = p.deco || '';
+    if (d.indexOf('b:') === 0) { var x = PF_DECOS.find(function (z) { return z.id === d.slice(2); }); return x ? x.uri : ''; }
+    if (d.indexOf('c:') === 0) { var f = (p.frames || []).find(function (z) { return z.id === d.slice(2); }); return f && /^https:\/\//.test(f.url || '') ? f.url : ''; }
+    return /^https:\/\//.test(p.frame_url || '') ? p.frame_url : '';
+  };
+
   // ---------- thẻ hồ sơ ----------
   window.buildProfile = function (p) {
     p = p || {};
@@ -63,7 +123,8 @@
     if (ok(p.avatar_url)) { im = el('img', 'pf-img'); im.src = p.avatar_url; im.alt = ''; }
     else im = el('div', 'pf-img ph', (p.name || 'N').trim().charAt(0).toUpperCase());
     av.append(im);
-    if (ok(p.frame_url)) { var o = el('img', 'pf-fo'); o.src = p.frame_url; o.alt = ''; av.append(o); }
+    var du = decoUrl(p);
+    if (du) { var o = el('img', 'pf-fo'); o.src = du; o.alt = ''; o.style.setProperty('--fs', Math.min(170, Math.max(100, +p.frame_scale || 130))); av.append(o); }
     root.append(ban, av, el('div', 'pf-nm', p.name || 'NOIR'));
     if (p.tagline) root.append(el('div', 'pf-tg', p.tagline));
     if (p.pronouns || p.location) {
