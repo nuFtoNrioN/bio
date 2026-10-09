@@ -101,3 +101,23 @@ dialog::backdrop{background:rgba(5,4,10,.72);-webkit-backdrop-filter:blur(4px);b
 .lk-st span{display:inline-flex;align-items:center;gap:6px}
 .lk-st i.on{width:8px;height:8px;border-radius:50%;background:#43b581;animation:ping 2s infinite}
 @keyframes ping{0%{box-shadow:0 0 0 0 rgba(67,181,129,.6)}70%,100%{box-shadow:0 0 0 7px rgba(67,181,129,0)}}
+
+/* tìm kiếm, lọc, phiên bản */
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.sq,.ssel{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font:inherit;min-width:0}
+.sq{flex:1 1 200px}.sq:focus,.ssel:focus{border-color:var(--accent)}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;flex-basis:100%}
+.fchip{padding:6px 14px;border-radius:99px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-2);font-size:13px;font-weight:500}
+.fchip.on{background:color-mix(in srgb,var(--accent) 22%,var(--bg-card));border-color:var(--accent);color:var(--text)}
+.ver{position:absolute;top:10px;right:10px;z-index:2;font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;background:rgba(10,8,16,.65);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid var(--border)}
+.chlog{margin:12px 0;padding:10px 14px;border-left:3px solid var(--accent);border-radius:0 12px 12px 0;background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.chlog b{font-size:13px}.chlog p{margin:4px 0 0;color:var(--text-2);font-size:14px;white-space:pre-line}
+.pvh{color:var(--text-2);font-size:13px;margin-top:14px}
+.pvc{margin:6px 0 0;max-height:220px;overflow:auto;color:var(--text-2)}
+
+/* link dạng thanh dài (mặc định), có thể đổi sang lưới trong dash */
+.links.list{grid-template-columns:1fr}
+.links.list .link{padding:14px 18px;column-gap:14px}
+.links.list .lk-ic{width:46px;height:46px}.links.list{grid-template-columns:1fr}
+.links.list .link{grid-template-columns:46px minmax(0,1fr) auto}
+.links.list .lk-note,.links.list .lk-st{grid-column:2/-1;margin-top:-4px}
