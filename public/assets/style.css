@@ -28,7 +28,7 @@ a{color:inherit;text-decoration:none}button{font:inherit;color:inherit;cursor:po
 @keyframes rip{to{transform:scale(1);opacity:0}}
 .sp::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .25s;background:radial-gradient(240px circle at var(--mx,50%) var(--my,50%),color-mix(in srgb,var(--bc,var(--accent)) 24%,transparent),transparent 62%)}
 .sp:hover::before{opacity:1}
-.sp>*{position:relative;z-index:1}
+.sp>:not(.ripple){position:relative;z-index:1}
 
 /* link mạng xã hội */
 .links{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
@@ -88,3 +88,16 @@ dialog::backdrop{background:rgba(5,4,10,.72);-webkit-backdrop-filter:blur(4px);b
 .side{position:static}.tabs{display:flex}.tab{flex:1;padding:9px 8px}
 .links{grid-template-columns:1fr}
 }
+
+/* thẻ link: nhuốm màu thương hiệu, có mô tả và thông tin trực tiếp */
+.link{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;column-gap:12px;row-gap:10px;padding:12px 14px;border-radius:16px;text-align:left;border:1px solid color-mix(in srgb,var(--bc,var(--accent)) 28%,var(--border));background:linear-gradient(135deg,color-mix(in srgb,var(--bc,var(--accent)) 15%,var(--bg-card)),var(--bg-card) 72%)}
+.link::after{content:"";position:absolute;top:0;bottom:0;left:-70%;width:50%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.09),transparent);transform:skewX(-20deg);transition:left .7s ease}
+.link:hover::after{left:130%}
+.link:hover{box-shadow:0 12px 32px -14px var(--bc,var(--accent))}
+.lk-ic{box-shadow:0 0 22px -6px var(--bc,var(--accent));overflow:hidden}
+.lk-av{width:100%;height:100%;object-fit:cover}
+.lk-note{grid-column:1/-1;margin:0;color:var(--text-2);font-size:13.5px;line-height:1.45}
+.lk-st{grid-column:1/-1;display:flex;gap:16px;flex-wrap:wrap;color:var(--text-2);font-size:13px}
+.lk-st span{display:inline-flex;align-items:center;gap:6px}
+.lk-st i.on{width:8px;height:8px;border-radius:50%;background:#43b581;animation:ping 2s infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(67,181,129,.6)}70%,100%{box-shadow:0 0 0 7px rgba(67,181,129,0)}}
