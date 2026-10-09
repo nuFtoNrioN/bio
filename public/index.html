@@ -12,11 +12,7 @@
 </head>
 <body>
 <main class="wrap">
-  <section class="profile">
-    <img id="avatar" class="avatar hidden" alt="">
-    <h1 id="name">NOIR</h1>
-    <p id="bio" class="bio"></p>
-  </section>
+  <section id="prof"></section>
   <div id="tabs" class="tabs hidden" role="tablist"></div>
   <div id="panel"></div>
   <footer>© <span id="year"></span> NOIR</footer>
@@ -71,14 +67,13 @@ function drawTabs(){const n=$('#tabs');
 function drawPanel(){const t=D.tabs.find(x=>x.id===TAB),p=$('#panel');p.replaceChildren();if(!t)return;
   const items=t.kind==='social'?D.links.filter(l=>eff(l,'social')===t.id):D.scripts.filter(s=>eff(s,'script')===t.id);
   if(!items.length){p.append(el('div',{class:'empty',text:'Chưa có gì ở tab này.'}));return}
-  if(t.kind==='social'){const box=el('div',{class:'links'});items.forEach(l=>{const href=safeUrl(l.url);if(!href)return;const a=el('a',{class:'link',href,target:'_blank',rel:'noopener noreferrer'});if(l.icon)a.append(el('span',{text:l.icon}));a.append(el('span',{text:l.label}));box.append(a)});p.append(box)}
+  if(t.kind==='social'){const box=el('div',{class:'links'});items.forEach(l=>{const href=safeUrl(l.url);if(!href)return;const a=el('a',{class:'link',href,target:'_blank',rel:'noopener noreferrer'});const slug=(l.icon||'').startsWith('si:')?l.icon.slice(3):'';if(PLAT[slug]){const im=el('img',{class:'lk-i',src:'https://cdn.simpleicons.org/'+slug+'/white',alt:'',loading:'lazy'});im.addEventListener('error',()=>im.remove());a.append(im);a.style.setProperty('--bc',PLAT[slug][1])}else if(l.icon)a.append(el('span',{text:l.icon}));a.append(el('span',{text:l.label}));box.append(a)});p.append(box)}
   else{const g=el('div',{class:'grid'});items.forEach(s=>g.append(card(s)));p.append(g)}}
 
-function render(d){D=d;applyLook(d.settings,'bio');const pr=d.profile;$('#name').textContent=pr.name||'NOIR';document.title=pr.name||'NOIR';$('#bio').textContent=pr.bio||'';
-  const av=pr.avatar_url&&safeUrl(pr.avatar_url);if(av){$('#avatar').src=av;$('#avatar').classList.remove('hidden')}
+function render(d){D=d;applyLook(d.settings,'bio');const pr=d.profile;$('#prof').replaceChildren(buildProfile(pr));document.title=pr.name||'NOIR';startFx(pr.effect);
   if(!TAB||!d.tabs.some(t=>t.id===TAB))TAB=(d.tabs[0]||{}).id;drawTabs();drawPanel()}
 $('#year').textContent=new Date().getFullYear();
-fetch('/api/site').then(r=>r.json()).then(render).catch(()=>{$('#bio').textContent='Không tải được dữ liệu, thử lại sau nhé.'});
+fetch('/api/site').then(r=>r.json()).then(render).catch(()=>{$('#prof').textContent='Không tải được dữ liệu, thử lại sau nhé.'});
 navigator.sendBeacon&&navigator.sendBeacon('/api/hit');
 </script>
 </body>
