@@ -235,8 +235,9 @@ async function homePage(request, env, sid) {
     const site = p.name || 'NOIR';
     let title = site, path = '/';
     let desc = ([p.tagline, p.bio].filter(Boolean).join(' - ') || 'Trang cá nhân của ' + site).slice(0, 160);
-    let img = ok(p.banner_url) ? p.banner_url : ok(p.avatar_url) ? p.avatar_url : '';
-    let big = ok(p.banner_url);
+    const pic = (u) => ok(u) && !/\.(mp4|webm|m4v)(\?|#|$)/i.test(u); // video không dùng làm ảnh xem trước
+    let img = pic(p.banner_url) ? p.banner_url : pic(p.avatar_url) ? p.avatar_url : '';
+    let big = pic(p.banner_url);
     if (sid) {
       const s = await env.DB.prepare('SELECT title, description, game, image_url FROM scripts WHERE id = ? AND published = 1').bind(sid).first();
       if (s) {
