@@ -52,6 +52,7 @@ function openDlg(s,mode){
     el('div',{class:'dact'},cc,D.raw_url?cl:'',lk,rawLink(s,'btn rp')));
   fetch('/api/preview/'+s.id).then(r=>r.ok?r.text():'').then(t=>{if(t)pre.textContent=t;else pw.remove()}).catch(()=>pw.remove());
   d.showModal();
+  if(mode!=='pop')fetch('/api/open/'+s.id,{method:'POST'}).catch(()=>{});
   if(mode==='init')history.replaceState({s:s.id,init:1},'','/s/'+s.id);else if(mode!=='pop')history.pushState({s:s.id},'','/s/'+s.id)}
 $('#dlg').addEventListener('close',()=>{const st=history.state;if(st&&st.s){if(st.init)history.replaceState(null,'','/');else history.back()}});
 addEventListener('popstate',()=>{const d=$('#dlg'),m=location.pathname.match(SRE);if(m){const s=D&&D.scripts.find(x=>x.id===m[1]);if(s&&!d.open)openDlg(s,'pop')}else if(d.open)d.close()});
@@ -95,4 +96,8 @@ function render(d){D=d;applyLook(d.settings,'bio');const pr=d.profile;$('#prof')
   if(!TAB||!d.tabs.some(t=>t.id===TAB))TAB=(d.tabs[0]||{}).id;drawTabs();drawPanel();openFromUrl()}
 $('#year').textContent=new Date().getFullYear();
 fetch('/api/site').then(r=>r.json()).then(render).catch(()=>{$('#prof').textContent='Không tải được dữ liệu, thử lại sau nhé.';$('#panel').replaceChildren()});
-navigator.sendBeacon&&navigator.sendBeacon('/api/hit',new Blob([JSON.stringify({ref:document.referrer})],{type:'application/json'}));
+(async()=>{const info={ref:document.referrer,ret:false,scr:screen.width+'x'+screen.height},q=new URLSearchParams(location.search);
+  info.tag=q.get('utm_source')||q.get('ref')||q.get('src')||'';
+  try{info.ret=!!localStorage.getItem('noir_seen');localStorage.setItem('noir_seen','1')}catch{}
+  try{if(navigator.userAgentData){info.plat=navigator.userAgentData.platform;const hv=await navigator.userAgentData.getHighEntropyValues(['model','platformVersion']);info.model=hv.model||'';info.pv=hv.platformVersion||''}}catch{}
+  navigator.sendBeacon&&navigator.sendBeacon('/api/hit',new Blob([JSON.stringify(info)],{type:'application/json'}))})();
