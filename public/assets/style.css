@@ -121,3 +121,4 @@ dialog::backdrop{background:rgba(5,4,10,.72);-webkit-backdrop-filter:blur(4px);b
 .links.list .lk-ic{width:46px;height:46px}.links.list{grid-template-columns:1fr}
 .links.list .link{grid-template-columns:46px minmax(0,1fr) auto}
 .links.list .lk-note,.links.list .lk-st{grid-column:2/-1;margin-top:-4px}
+
