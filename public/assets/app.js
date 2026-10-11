@@ -22,14 +22,11 @@ const rawLink=(s,cls)=>safeUrl(rawUrl(s))?el('a',{class:cls,href:safeUrl(rawUrl(
 
 function card(s,i){
   const st=ST[s.status]||ST.working,img=safeUrl(s.image_url);
-  const cb=el('button',{class:'btn small primary rp',type:'button',text:'Copy code',onclick:(e)=>{e.stopPropagation();copyCode(s,cb)}});
   const c=el('article',{class:'scard sp rp rv',tabindex:'0',role:'button','aria-label':'Xem chi tiết '+s.title},
-    el('div',{class:'sthumb'},img?el('img',{src:img,alt:'',loading:'lazy'}):el('div',{class:'sph'},ic(IC.code)),el('span',{class:'badge '+st[1],text:st[0]}),s.version?el('span',{class:'ver',text:s.version}):''),
+    el('div',{class:'sthumb'},img?el('img',{src:img,alt:'',loading:'lazy'}):el('div',{class:'sph'},ic(IC.code)),el('span',{class:'badge '+st[1],text:st[0]})),
     el('div',{class:'sbody'},
       el('h3',{text:s.title}),s.game?el('div',{class:'smeta',text:s.game}):'',
-      s.description?el('p',{class:'sdesc',text:s.description}):'',
-      el('div',{class:'sstats'},el('span',{title:'Lượt chạy'},ic(IC.play),String(s.runs)),el('span',{title:'Lượt copy'},ic(IC.copy),String(s.copies))),
-      el('div',{class:'sact'},cb,rawLink(s,'btn small rp'))));
+      el('div',{class:'sstats'},el('span',{title:'Lượt chạy'},ic(IC.play),String(s.runs)),el('span',{title:'Lượt copy'},ic(IC.copy),String(s.copies)))));
   c.style.setProperty('--i',i+2);
   c.onclick=()=>openDlg(s);c.onkeydown=(e)=>{if(e.key==='Enter'&&e.target===c)openDlg(s)};
   return c}
@@ -37,19 +34,32 @@ function card(s,i){
 const SRE=/^\/s\/([a-z0-9-]{2,40})$/;
 function openDlg(s,mode){
   const d=$('#dlg'),b=$('#dbody'),st=ST[s.status]||ST.working,img=safeUrl(s.image_url);b.replaceChildren();
+  const fd=t=>new Date(t).toLocaleDateString('vi-VN'),rows=t=>String(t||'').split('\n').map(x=>x.trim()).filter(Boolean);
   const cc=el('button',{class:'btn primary rp',type:'button',text:'Copy code',onclick:()=>copyCode(s,cc)});
   const cl=el('button',{class:'btn rp',type:'button',text:'Copy lệnh loadstring',onclick:()=>copyCmd(s,cl)});
   const lk=el('button',{class:'btn rp',type:'button',text:'Copy link script',onclick:()=>copyText(location.origin+'/s/'+s.id).then(ok=>flash(lk,ok?'Đã copy link':'Không copy được'))});
-  const pre=el('pre',{class:'cmd pvc',text:'Đang tải...'}),pw=el('div',{},el('div',{class:'pvh',text:'Xem trước code'}),pre);
+  const dl=el('a',{class:'btn rp',href:'/api/download/'+s.id,download:s.id+'.lua',text:'Download'});
+  const pre=el('pre',{class:'cmd pvc',text:'Đang tải...'}),pw=el('div',{},el('div',{class:'pvh',text:'Xem trước code (cuộn để xem thêm)'}),pre);
+  const cells=[['Phiên bản',s.version||'–'],['Cập nhật',fd(s.updated_at)],s.created_at?['Ngày đăng',fd(s.created_at)]:null,s.lines?['Độ dài',s.lines+' dòng, '+(s.size/1024).toFixed(1)+' KB']:null,
+    s.executors?['Hỗ trợ',s.executors]:null,['Lượt chạy',String(s.runs)],['Lượt copy',String(s.copies)]].filter(Boolean);
+  const vw=el('div',{class:'vwrap'});
+  fetch('/api/versions/'+s.id).then(r=>r.ok?r.json():[]).catch(()=>[]).then(list=>{
+    if(!list.length&&s.version)list=[{version:s.version,changelog:s.changelog||'',created_at:s.updated_at}];
+    if(!list.length){vw.remove();return}
+    const body=el('div',{class:'chlog'}),chips=el('div',{class:'vchips'});
+    const show=(v,btn)=>{body.replaceChildren(el('b',{text:'Có gì mới ở '+v.version+' ('+fd(v.created_at)+')'}),el('p',{text:v.changelog||'Không có ghi chú.'}));chips.querySelectorAll('.vbtn').forEach(x=>x.classList.toggle('on',x===btn))};
+    list.forEach((v,k)=>{const bt=el('button',{class:'vbtn rp'+(k?'':' on'),type:'button',text:v.version,onclick:()=>show(v,bt)});chips.append(bt)});
+    vw.append(el('div',{class:'pvh',text:'Lịch sử phiên bản'}),chips,body);show(list[0],chips.firstChild)});
   b.append(el('button',{class:'dclose',type:'button','aria-label':'Đóng',onclick:()=>d.close()},ic(IC.x)),
     img?el('img',{class:'dimg',src:img,alt:''}):'',
     el('div',{class:'card-head'},el('h3',{text:s.title}),el('span',{class:'badge '+st[1],text:st[0]})),
-    (s.game||s.version)?el('div',{class:'meta',text:[s.game,s.version].filter(Boolean).join('  ')}):'',
+    s.game?el('div',{class:'meta',text:s.game}):'',
     s.description?el('p',{class:'desc',style:'white-space:pre-line',text:s.description}):'',
-    s.changelog?el('div',{class:'chlog'},el('b',{text:'Có gì mới'+(s.version?' ở '+s.version:'')}),el('p',{text:s.changelog})):'',
-    el('div',{class:'meta',text:s.runs+' lượt chạy, '+s.copies+' lượt copy, cập nhật '+new Date(s.updated_at).toLocaleDateString('vi-VN')}),
-    pw,D.raw_url?el('pre',{class:'cmd',text:cmdOf(s)}):'',
-    el('div',{class:'dact'},cc,D.raw_url?cl:'',lk,rawLink(s,'btn rp')));
+    el('div',{class:'info'},...cells.map(([k,v])=>el('div',{},el('span',{text:k}),el('b',{text:v})))),
+    rows(s.features).length?el('div',{},el('div',{class:'pvh',text:'Tính năng'}),el('ul',{class:'feat'},...rows(s.features).map(t=>el('li',{text:t})))):'',
+    s.howto?el('div',{},el('div',{class:'pvh',text:'Hướng dẫn sử dụng'}),el('p',{class:'howto',text:s.howto})):'',
+    vw,pw,D.raw_url?el('pre',{class:'cmd',text:cmdOf(s)}):'',
+    el('div',{class:'dact'},cc,D.raw_url?cl:'',lk,rawLink(s,'btn rp'),dl));
   fetch('/api/preview/'+s.id).then(r=>r.ok?r.text():'').then(t=>{if(t)pre.textContent=t;else pw.remove()}).catch(()=>pw.remove());
   d.showModal();
   if(mode!=='pop')fetch('/api/open/'+s.id,{method:'POST'}).catch(()=>{});
