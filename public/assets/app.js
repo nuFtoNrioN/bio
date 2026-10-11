@@ -115,7 +115,17 @@ function drawPanel(){const t=D.tabs.find(x=>x.id===TAB),p=$('#panel');p.replaceC
       p.append(el('div',{class:'tools'},q,so,el('div',{class:'fchips'},...chips)))}
     p.append(g);fill()}}
 
-function render(d){D=d;applyLook(d.settings,'bio');const pr=d.profile;$('#prof').replaceChildren(buildProfile(pr));document.title=pr.name||'NOIR';startFx(pr.effect);
+const nf=(n)=>n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n>=1e3?(n/1e3).toFixed(1).replace(/\.0$/,'')+'K':String(n);
+/* khối dưới thẻ hồ sơ (chỉ hiện ở giao diện máy tính): số liệu chung và 2 script mới cập nhật */
+function drawSide(){const b=$('#sidex'),L=D.scripts||[];b.replaceChildren();b.classList.toggle('hidden',!L.length);if(!L.length)return;
+  const sum=(k)=>L.reduce((a,s)=>a+(Number(s[k])||0),0);
+  b.append(el('div',{class:'sx-st'},...[['Script',L.length],['Lượt chạy',sum('runs')],['Lượt copy',sum('copies')]].map(([k,v])=>el('div',{},el('b',{text:nf(v)}),el('span',{text:k})))));
+  const nw=[...L].sort((a,b)=>b.updated_at-a.updated_at).slice(0,2);
+  b.append(el('div',{class:'sx-h',text:'Mới cập nhật'}),...nw.map((s)=>{const img=safeUrl(s.image_url),r=el('button',{class:'sx-row',type:'button','aria-label':'Xem chi tiết '+s.title},
+    el('span',{class:'sx-th'},img?el('img',{src:img,alt:'',loading:'lazy'}):ic(IC.code)),
+    el('span',{class:'sx-tx'},el('b',{text:s.title}),el('small',{text:[s.version,new Date(s.updated_at).toLocaleDateString('vi-VN')].filter(Boolean).join(' · ')})),ic(IC.right,'sx-ar'));
+    r.onclick=()=>openDlg(s);return r}))}
+function render(d){D=d;applyLook(d.settings,'bio');const pr=d.profile;$('#prof').replaceChildren(buildProfile(pr));drawSide();document.title=pr.name||'NOIR';startFx(pr.effect);
   if(!TAB||!d.tabs.some(t=>t.id===TAB))TAB=(d.tabs[0]||{}).id;drawTabs();drawPanel();openFromUrl()}
 $('#year').textContent=new Date().getFullYear();
 fetch('/api/site').then(r=>r.json()).then(render).catch(()=>{$('#prof').textContent='Không tải được dữ liệu, thử lại sau nhé.';$('#panel').replaceChildren()});
