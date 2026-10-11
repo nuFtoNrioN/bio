@@ -6,9 +6,8 @@ a{color:inherit;text-decoration:none}button{font:inherit;color:inherit;cursor:po
 .hidden{display:none!important}
 .i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
-/* bố cục: thẻ hồ sơ bên trái (dính), nội dung bên phải */
-.page{display:grid;grid-template-columns:340px minmax(0,1fr);gap:28px;max-width:1040px;margin:0 auto;padding:36px 20px 64px;align-items:start}
-.side{position:sticky;top:28px}
+/* bố cục chung (cả hai giao diện); phần riêng của từng giao diện nằm ở cuối file, dưới tiền tố html[data-ui=...] */
+.page{display:block}
 #prof{background:var(--bg-card);border:1px solid var(--border);border-radius:22px;padding:12px 14px 22px}
 .foot{color:var(--text-3);font-size:13px;text-align:center;margin-top:14px}
 .content{min-width:0}
@@ -83,11 +82,6 @@ dialog::backdrop{background:rgba(5,4,10,.72);-webkit-backdrop-filter:blur(4px);b
 .sk{border-radius:18px;background:linear-gradient(90deg,var(--bg-card),var(--bg-hover),var(--bg-card));background-size:200% 100%;animation:shim 1.4s linear infinite}
 @keyframes shim{to{background-position:-200% 0}}
 
-@media(max-width:859px){
-.page{grid-template-columns:1fr;gap:20px;padding:18px 14px 48px}
-.side{position:static}.tabs{display:flex}.tab{flex:1;padding:9px 8px}
-.links{grid-template-columns:1fr}
-}
 
 /* thẻ link: nhuốm màu thương hiệu, có mô tả và thông tin trực tiếp */
 .link{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;column-gap:12px;row-gap:10px;padding:12px 14px;border-radius:16px;text-align:left;border:1px solid color-mix(in srgb,var(--bc,var(--accent)) 28%,var(--border));background:linear-gradient(135deg,color-mix(in srgb,var(--bc,var(--accent)) 15%,var(--bg-card)),var(--bg-card) 72%)}
@@ -134,3 +128,59 @@ dialog::backdrop{background:rgba(5,4,10,.72);-webkit-backdrop-filter:blur(4px);b
 .vbtn.on{background:color-mix(in srgb,var(--accent) 22%,var(--bg-card));border-color:var(--accent);color:var(--text)}
 .pvc{max-height:12em;overflow:auto;white-space:pre}
 .dact .btn{flex:1 1 calc(50% - 8px)}
+
+
+/* =====================================================================
+   GIAO DIỆN MÁY TÍNH: html[data-ui=desktop]
+   Thẻ hồ sơ dính bên trái, nội dung bên phải, popup ở giữa màn hình.
+   ===================================================================== */
+html[data-ui=desktop] .page{display:grid;grid-template-columns:340px minmax(0,1fr);gap:28px;max-width:1040px;margin:0 auto;padding:36px 20px 64px;align-items:start}
+html[data-ui=desktop] .side{position:sticky;top:28px}
+html[data-ui=desktop] .tabs{display:inline-flex}
+
+/* =====================================================================
+   GIAO DIỆN ĐIỆN THOẠI: html[data-ui=mobile]
+   Một cột, hồ sơ gọn, tab dính đầu trang, script dạng danh sách ngang,
+   popup trượt từ đáy lên. Mọi quy tắc riêng cho điện thoại viết ở đây.
+   ===================================================================== */
+html[data-ui=mobile] .page{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding:12px 12px 44px}
+html[data-ui=mobile] .side{position:static}
+html[data-ui=mobile] #prof{padding:10px 12px 18px;border-radius:20px}
+html[data-ui=mobile] .pf-ban{height:104px;border-radius:14px}
+html[data-ui=mobile] .pf-av{width:88px;height:88px;margin:-44px auto 10px}
+html[data-ui=mobile] .pf-img.ph{font-size:32px}
+html[data-ui=mobile] .pf-nm{font-size:21px}
+html[data-ui=mobile] .foot{margin-top:10px}
+
+/* tab dính ở đầu màn hình khi cuộn */
+html[data-ui=mobile] .tabs{display:flex;position:sticky;top:8px;z-index:20;margin-bottom:14px;background:color-mix(in srgb,var(--bg-card) 86%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 10px 26px -14px rgba(0,0,0,.7)}
+html[data-ui=mobile] .tab{flex:1;padding:10px 8px}
+
+/* link */
+html[data-ui=mobile] .links,html[data-ui=mobile] .links.list{grid-template-columns:1fr}
+html[data-ui=mobile] .links.list .link{padding:12px 14px;column-gap:12px;grid-template-columns:42px minmax(0,1fr) auto}
+html[data-ui=mobile] .links.list .lk-ic{width:42px;height:42px}
+
+/* script: card ngang (ảnh trái, chữ phải) để thấy được nhiều script hơn */
+html[data-ui=mobile] .grid{grid-template-columns:1fr;gap:10px}
+html[data-ui=mobile] .scard{display:flex;align-items:stretch;border-radius:16px}
+html[data-ui=mobile] .scard:hover{transform:none}
+html[data-ui=mobile] .sthumb{flex:none;width:124px;aspect-ratio:auto;min-height:92px}
+html[data-ui=mobile] .sthumb img,html[data-ui=mobile] .sthumb .sph{position:absolute;inset:0;width:100%;height:100%}
+html[data-ui=mobile] .sthumb::after{display:none}
+html[data-ui=mobile] .sthumb .badge{top:6px;left:6px;font-size:10.5px;padding:2px 7px}
+html[data-ui=mobile] .sbody{flex:1;min-width:0;padding:12px 14px;display:flex;flex-direction:column;justify-content:center}
+html[data-ui=mobile] .sbody h3{font-size:16px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+html[data-ui=mobile] .sstats{margin-top:8px}
+
+/* tìm kiếm, lọc: ô nhập 16px để trình duyệt không tự phóng to; chip cuộn ngang */
+html[data-ui=mobile] .sq,html[data-ui=mobile] .ssel{font-size:16px}
+html[data-ui=mobile] .fchips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -12px;padding:0 12px}
+html[data-ui=mobile] .fchips::-webkit-scrollbar{display:none}
+html[data-ui=mobile] .fchip{flex:none}
+
+/* popup thành bảng trượt từ đáy lên */
+html[data-ui=mobile] dialog{margin:auto 0 0;width:100%;max-width:none;max-height:92dvh;border-radius:22px 22px 0 0;border-bottom:0}
+html[data-ui=mobile] dialog[open]{animation:sheet .3s cubic-bezier(.2,.9,.3,1)}
+@keyframes sheet{from{opacity:0;transform:translateY(48px)}}
+html[data-ui=mobile] .dact .btn.primary{flex-basis:100%}
