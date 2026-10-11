@@ -195,8 +195,16 @@ async function getProfile(env) {
 }
 
 async function getLinks(env) {
+  try { return (await env.DB.prepare('SELECT label, url, icon, tab_id, note, mode FROM links ORDER BY sort, id').all()).results; }
+  catch (e) { /* chưa chạy migration 009 */ }
   try { return (await env.DB.prepare('SELECT label, url, icon, tab_id, note FROM links ORDER BY sort, id').all()).results; }
   catch (e) { return (await env.DB.prepare('SELECT label, url, icon, tab_id FROM links ORDER BY sort, id').all()).results; }
+}
+
+// Tab kèm chế độ, chức năng (opts) và nội dung ghi chú (body); chưa chạy migration 009 thì rơi về cột cũ
+async function getTabs(env) {
+  try { return (await env.DB.prepare('SELECT id, name, kind, opts, body FROM tabs ORDER BY sort, id').all()).results; }
+  catch (e) { return (await env.DB.prepare('SELECT id, name, kind FROM tabs ORDER BY sort, id').all()).results; }
 }
 
 // Thông tin Discord trực tiếp: lấy từ link mời máy chủ (discord.gg/xxxx), cache khoảng 10 phút
@@ -308,14 +316,14 @@ async function previewOf(env, id) {
 }
 
 async function publicSite(env) {
-  const t = await env.DB.prepare('SELECT id, name, kind FROM tabs ORDER BY sort, id').all();
+  const tabs = await getTabs(env);
   let settings = {};
   try { const r = await env.DB.prepare('SELECT data FROM site_settings WHERE id = 1').first(); settings = r ? JSON.parse(r.data) : {}; } catch (e) { /* chưa chạy migration 002 */ }
   return json(
     {
       settings,
       profile: await getProfile(env),
-      tabs: t.results, links: await withDiscord(await getLinks(env)), scripts: await getScripts(env),
+      tabs, links: await withDiscord(await getLinks(env)), scripts: await getScripts(env),
       raw_url: (env.RAW_URL || '').replace(/\/$/, ''),
     },
     200,
