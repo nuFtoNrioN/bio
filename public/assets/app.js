@@ -1,6 +1,6 @@
 const $=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)];
 const ST={working:['Đang chạy','working'],patched:['Đã bị patch','patched'],outdated:['Cũ','outdated']};
-const IC={arrow:'M7 17L17 7M9 7h8v8',play:'M8 5v14l11-7z',copy:'M9 9h10v10H9zM5 15V5h10',code:'M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14',x:'M6 6l12 12M18 6L6 18',users:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8'};
+const IC={arrow:'M7 17L17 7M9 7h8v8',play:'M8 5v14l11-7z',copy:'M9 9h10v10H9zM5 15V5h10',code:'M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14',x:'M6 6l12 12M18 6L6 18',down:'M6 9l6 6 6-6',right:'M9 6l6 6-6 6',users:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8'};
 function ic(d,c=''){const N='http://www.w3.org/2000/svg',s=document.createElementNS(N,'svg'),p=document.createElementNS(N,'path');s.setAttribute('viewBox','0 0 24 24');s.setAttribute('class','i '+c);p.setAttribute('d',d);s.append(p);return s}
 function el(tag,attrs={},...kids){const e=document.createElement(tag);for(const[k,v]of Object.entries(attrs)){if(k==='class')e.className=v;else if(k==='text')e.textContent=v;else if(k.startsWith('on'))e.addEventListener(k.slice(2),v);else e.setAttribute(k,v)}kids.forEach(c=>e.append(c));return e}
 const safeUrl=(u)=>{try{const x=new URL(u);return x.protocol==='https:'?x.href:null}catch{return null}};
@@ -46,10 +46,22 @@ function openDlg(s,mode){
   fetch('/api/versions/'+s.id).then(r=>r.ok?r.json():[]).catch(()=>[]).then(list=>{
     if(!list.length&&s.version)list=[{version:s.version,changelog:s.changelog||'',created_at:s.updated_at}];
     if(!list.length){vw.remove();return}
-    const body=el('div',{class:'chlog'}),chips=el('div',{class:'vchips'});
-    const show=(v,btn)=>{body.replaceChildren(el('b',{text:'Có gì mới ở '+v.version+' ('+fd(v.created_at)+')'}),el('p',{text:v.changelog||'Không có ghi chú.'}));chips.querySelectorAll('.vbtn').forEach(x=>x.classList.toggle('on',x===btn))};
-    list.forEach((v,k)=>{const bt=el('button',{class:'vbtn rp'+(k?'':' on'),type:'button',text:v.version,onclick:()=>show(v,bt)});chips.append(bt)});
-    vw.append(el('div',{class:'pvh',text:'Lịch sử phiên bản'}),chips,body);show(list[0],chips.firstChild)});
+    let cur=list[0];const many=list.length>1;
+    const lab=el('span',{class:'vsel-t'}),
+      pick=el('button',{class:'vsel rp',type:'button','aria-haspopup':'listbox','aria-expanded':'false','aria-label':'Chọn phiên bản'},lab,many?ic(IC.down,'vsel-c'):''),
+      menu=el('div',{class:'vmenu',role:'listbox'}),
+      tlab=el('span'),tg=el('button',{class:'vtog',type:'button','aria-expanded':'false'},ic(IC.right,'vtog-c'),tlab),
+      txt=el('div',{class:'vtxt'}),box=el('div',{class:'vbox'},el('div',{class:'vin'},txt));
+    menu.hidden=true;
+    const setMenu=(o)=>{menu.hidden=!o;pick.setAttribute('aria-expanded',String(o));pick.classList.toggle('open',o)};
+    menu._close=()=>setMenu(false);
+    const opts=list.map(v=>{const o=el('button',{class:'vopt',type:'button',role:'option'},el('span',{text:v.version}),el('small',{text:fd(v.created_at)}));o.onclick=()=>{cur=v;show();setMenu(false)};return o});
+    const show=()=>{lab.textContent=cur.version+' · '+fd(cur.created_at);tlab.textContent='Có gì mới ở '+cur.version;txt.textContent=cur.changelog||'Không có ghi chú.';
+      opts.forEach((o,k)=>{const on=list[k]===cur;o.classList.toggle('on',on);o.setAttribute('aria-selected',String(on))})};
+    if(many){menu.append(...opts);pick.onclick=()=>{setMenu(menu.hidden);if(!menu.hidden)menu.scrollIntoView({block:'nearest',behavior:'smooth'})}}else pick.classList.add('one');
+    tg.onclick=()=>{const o=!box.classList.contains('open');box.classList.toggle('open',o);tg.classList.toggle('open',o);tg.setAttribute('aria-expanded',String(o))};
+    vw.addEventListener('keydown',(e)=>{if(e.key==='Escape'&&!menu.hidden){e.preventDefault();e.stopPropagation();setMenu(false)}});
+    vw.append(el('div',{class:'pvh',text:'Lịch sử phiên bản'}),el('div',{class:'vpick'},pick,menu),tg,box);show()});
   b.append(el('button',{class:'dclose',type:'button','aria-label':'Đóng',onclick:()=>d.close()},ic(IC.x)),
     img?el('img',{class:'dimg',src:img,alt:''}):'',
     el('div',{class:'card-head'},el('h3',{text:s.title}),el('span',{class:'badge '+st[1],text:st[0]})),
@@ -70,7 +82,7 @@ function openFromUrl(){const m=location.pathname.match(SRE);if(!m||$('#dlg').ope
   if(!s){history.replaceState(null,'','/');return}
   const t=D.tabs.find(x=>x.kind==='script'&&x.id===eff(s,'script'));if(t&&t.id!==TAB){TAB=t.id;drawTabs();drawPanel()}
   openDlg(s,'init')}
-$('#dlg').addEventListener('click',(e)=>{if(e.target===e.currentTarget)e.currentTarget.close()});
+$('#dlg').addEventListener('click',(e)=>{if(e.target===e.currentTarget){e.currentTarget.close();return}$$('.vmenu:not([hidden])').forEach(m=>{if(!m.parentNode.contains(e.target))m._close()})});
 
 function moveInd(){const n=$('#tabs'),a=n.querySelector('.tab.active'),i=n.querySelector('.ind');if(a&&i){i.style.setProperty('--x',a.offsetLeft+'px');i.style.setProperty('--w',a.offsetWidth+'px')}}
 function drawTabs(){const n=$('#tabs');
