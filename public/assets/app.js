@@ -78,6 +78,7 @@ function drawTabs(){const n=$('#tabs');
   n.classList.toggle('hidden',D.tabs.length<2);
   requestAnimationFrame(()=>{moveInd();n.classList.add('ready')})}
 addEventListener('resize',moveInd);document.fonts&&document.fonts.ready.then(moveInd);
+new MutationObserver(()=>requestAnimationFrame(moveInd)).observe(document.documentElement,{attributes:true,attributeFilter:['data-ui']});
 
 let F={q:'',st:'all',sort:'def'};
 function drawPanel(){const t=D.tabs.find(x=>x.id===TAB),p=$('#panel');p.replaceChildren();if(!t)return;
