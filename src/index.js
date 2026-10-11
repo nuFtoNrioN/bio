@@ -29,6 +29,12 @@ export default {
         return new Response(null, { status: 204 });
       }
 
+      m = path.match(/^\/api\/versions\/([a-z0-9-]{2,40})$/);
+      if (m && method === 'GET') return await versionsOf(env, m[1]);
+
+      m = path.match(/^\/api\/download\/([a-z0-9-]{2,40})$/);
+      if (m && method === 'GET') return await downloadOf(env, ctx, m[1], request);
+
       m = path.match(/^\/api\/preview\/([a-z0-9-]{2,40})$/);
       if (m && method === 'GET') return await previewOf(env, m[1]);
 
@@ -263,15 +269,41 @@ async function homePage(request, env, sid) {
 }
 
 async function getScripts(env) {
-  try { return (await env.DB.prepare('SELECT id, title, description, game, image_url, status, runs, copies, tab_id, updated_at, version, changelog FROM scripts WHERE published = 1 ORDER BY sort, updated_at DESC').all()).results; }
-  catch (e) { return (await env.DB.prepare('SELECT id, title, description, game, image_url, status, runs, copies, tab_id, updated_at FROM scripts WHERE published = 1 ORDER BY updated_at DESC').all()).results; }
+  const base = 'id, title, description, game, image_url, status, runs, copies, tab_id, updated_at';
+  const tiers = [
+    base + ", version, changelog, features, howto, executors, created_at, LENGTH(code) AS size, (LENGTH(code) - LENGTH(REPLACE(code, char(10), '')) + 1) AS lines FROM scripts WHERE published = 1 ORDER BY sort, updated_at DESC",
+    base + ', version, changelog FROM scripts WHERE published = 1 ORDER BY sort, updated_at DESC',
+    base + ' FROM scripts WHERE published = 1 ORDER BY updated_at DESC',
+  ];
+  for (let i = 0; i < tiers.length; i++) {
+    try { return (await env.DB.prepare('SELECT ' + tiers[i]).all()).results; } catch (e) { if (i === tiers.length - 1) throw e; }
+  }
 }
+
+// Lịch sử phiên bản của một script (mới nhất trước)
+async function versionsOf(env, id) {
+  try {
+    const ok = await env.DB.prepare('SELECT 1 AS x FROM scripts WHERE id = ? AND published = 1').bind(id).first();
+    if (!ok) return json([], 404);
+    const { results } = await env.DB.prepare('SELECT version, changelog, created_at FROM script_versions WHERE script_id = ? ORDER BY id DESC LIMIT 50').bind(id).all();
+    return json(results, 200, { 'Cache-Control': 'public, max-age=60' });
+  } catch (e) { return json([]); }
+}
+
+// Nút Download: tải code về thành file .lua (tính là một lượt copy)
+async function downloadOf(env, ctx, id, request) {
+  const row = await env.DB.prepare('SELECT code FROM scripts WHERE id = ? AND published = 1').bind(id).first();
+  if (!row) return new Response('Not found', { status: 404 });
+  ctx.waitUntil(bump(env, 'copy', id, request));
+  return new Response(row.code, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Content-Disposition': 'attachment; filename="' + id + '.lua"', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
+}
+
 
 // Xem trước vài dòng đầu của code (không tính là lượt copy)
 async function previewOf(env, id) {
   const row = await env.DB.prepare('SELECT code FROM scripts WHERE id = ? AND published = 1').bind(id).first();
   if (!row) return new Response('Not found', { status: 404 });
-  const text = row.code.split('\n').slice(0, 14).map((l) => l.slice(0, 160)).join('\n');
+  const text = row.code.split('\n').slice(0, 80).map((l) => l.slice(0, 160)).join('\n');
   return new Response(text, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=120', 'X-Content-Type-Options': 'nosniff' } });
 }
 
