@@ -154,6 +154,20 @@ dialog#mdlg{width:min(920px,calc(100% - 20px));background:#07060c}
 html[data-ui=mobile] .mg{grid-template-columns:repeat(2,1fr)}
 html[data-ui=mobile] .shl-i{padding:12px 14px;column-gap:12px}
 
+/* ghi chú nhiều mục (v18.2): thẻ có mũi tên, mở ra thấy nội dung và giờ tạo, giờ cập nhật */
+.ntl{display:grid;gap:10px}
+.nt{border:1px solid var(--border);background:var(--bg-card);border-radius:16px;overflow:hidden}
+.nt-h{display:flex;align-items:center;gap:10px;width:100%;padding:13px 16px;background:none;border:0;text-align:left;cursor:pointer;color:var(--text)}
+.nt-c{width:18px;height:18px;flex:none;color:var(--text-3);transition:transform .2s}
+.nt-h[aria-expanded=true] .nt-c{transform:rotate(90deg)}
+.nt-tt{display:flex;flex-direction:column;min-width:0;flex:1}
+.nt-tt b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nt-tt small{color:var(--text-3);font-size:12px;margin-top:1px}
+.nt-in{padding:0 16px 14px 44px}
+.nt-x{line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+.nt-tm{display:flex;flex-direction:column;gap:2px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);color:var(--text-3);font-size:12px}
+@media (prefers-reduced-motion:reduce){.nt-c{transition:none}}
+
 /* =====================================================================
    GIAO DIỆN MÁY TÍNH: html[data-ui=desktop]
    Thẻ hồ sơ dính bên trái, nội dung bên phải, popup ở giữa màn hình.
@@ -241,3 +255,4 @@ html[data-ui=mobile] .dact .btn.primary{flex-basis:100%}
 .vin{overflow:hidden;min-height:0}
 .vtxt{margin-top:4px;padding:10px 14px;border-left:3px solid var(--accent);border-radius:0 12px 12px 0;background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--text-2);font-size:14px;white-space:pre-line}
 @media (prefers-reduced-motion:reduce){.vbox,.vsel-c,.vtog-c{transition:none}}
+html[data-ui=mobile] .nt-in{padding-left:16px}
