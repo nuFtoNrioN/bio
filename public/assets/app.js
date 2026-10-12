@@ -121,7 +121,16 @@ function blkMedia(items){const g=el('div',{class:'mg'});items.forEach((l,i)=>{co
 $('#mdlg').addEventListener('click',(e)=>{if(e.target===e.currentTarget)e.currentTarget.close()});
 $('#mx').addEventListener('click',()=>$('#mdlg').close());
 $('#mdlg').addEventListener('close',()=>{const v=$('#mbody video');if(v)v.pause();$('#mbody').replaceChildren()});
-function blkNote(t){return el('div',{class:'note',text:t.body})}
+/* ghi chú nhiều mục (v18.2): mỗi ghi chú là một thẻ có mũi tên; mở ra thấy nội dung và giờ tạo, giờ cập nhật chi tiết. Chỉ có một ghi chú thì mở sẵn */
+const fdt=(ms,full)=>new Date(ms).toLocaleString('vi-VN',full?{hour:'2-digit',minute:'2-digit',second:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'}:{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+function blkNote(t){const L=parseNotes(t.body).filter(n=>n.title||n.text),box=el('div',{class:'ntl'});
+  L.forEach((n,i)=>{const open=L.length===1,first=(n.text.split('\n').find(x=>x.trim())||'').trim().slice(0,70),title=n.title||first||'Ghi chú';
+    const tm=el('div',{class:'nt-tm'},el('span',{text:'Tạo lúc: '+(n.c?fdt(n.c,1):'chưa rõ')}),el('span',{text:'Cập nhật lúc: '+(n.u?fdt(n.u,1):'chưa rõ')}));
+    const vb=el('div',{class:'vbox'+(open?' open':'')},el('div',{class:'vin'},el('div',{class:'nt-in'},...(n.text?[el('div',{class:'nt-x',text:n.text})]:[]),tm)));
+    const hd=el('button',{class:'nt-h rp',type:'button','aria-expanded':String(open)},ic(IC.right,'nt-c'),el('span',{class:'nt-tt'},el('b',{text:title}),...(n.u?[el('small',{text:'Cập nhật '+fdt(n.u)})]:[])));
+    hd.onclick=()=>{const on=hd.getAttribute('aria-expanded')!=='true';hd.setAttribute('aria-expanded',String(on));vb.classList.toggle('open',on)};
+    const c=el('article',{class:'nt rv'},hd,vb);c.style.setProperty('--i',i+2);box.append(c)});
+  return box}
 function blkScript(items,tools){const w=el('div'),g=el('div',{class:'grid'});
     const fill=()=>{const q=F.q.trim().toLowerCase();let l=items.filter(s=>(F.st==='all'||s.status===F.st)&&(!q||(s.title+' '+(s.game||'')+' '+(s.description||'')).toLowerCase().includes(q)));
       if(F.sort==='runs')l=[...l].sort((a,b)=>b.runs-a.runs);else if(F.sort==='new')l=[...l].sort((a,b)=>b.updated_at-a.updated_at);
@@ -137,7 +146,7 @@ const BH={social:'Mạng xã hội',link:'Link',media:'Ảnh & video',script:'Sc
 function drawPanel(){const t=D.tabs.find(x=>x.id===TAB),p=$('#panel');p.replaceChildren();if(!t)return;
   const blocks=[];
   tabFeats(t).forEach(k=>{
-    if(k==='note'){if((t.body||'').trim())blocks.push(['note',blkNote(t)])}
+    if(k==='note'){if(parseNotes(t.body).some(n=>n.title||n.text))blocks.push(['note',blkNote(t)])}
     else if(LINK_FEATS.includes(k)){const it=D.links.filter(l=>{const pl=linkPlace(D.tabs,l);return pl.tab&&pl.tab.id===t.id&&pl.mode===k});if(it.length)blocks.push([k,({social:blkSocial,link:blkLink,media:blkMedia})[k](it)])}
     else if(k==='script'){const it=D.scripts.filter(s=>{const x=pickTab(D.tabs,'script',s.tab_id);return x&&x.id===t.id});if(it.length)blocks.push(['script',blkScript(it,t.kind==='custom'?tabOpts(t).tools:true)])}});
   if(!blocks.length){p.append(el('div',{class:'empty',text:'Chưa có gì ở tab này.'}));return}
