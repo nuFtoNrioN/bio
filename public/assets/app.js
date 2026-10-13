@@ -93,22 +93,26 @@ new MutationObserver(()=>requestAnimationFrame(moveInd)).observe(document.docume
 
 let F={q:'',st:'all',sort:'def'};
 /* icon của link: ảnh máy chủ Discord, biểu tượng nền tảng, hoặc emoji */
-function lkIcon(l,info){const slug=(l.icon||'').startsWith('si:')?l.icon.slice(3):'',av=info&&info.icon&&safeUrl(info.icon),ib=el('span',{class:'lk-ic'});
-  if(av)ib.append(el('img',{class:'lk-av',src:av,alt:'',loading:'lazy'}));else if(PLAT[slug]){const im=el('img',{class:'lk-i',src:'https://cdn.simpleicons.org/'+slug+'/white',alt:'',loading:'lazy'});im.addEventListener('error',()=>im.remove());ib.append(im)}else ib.textContent=l.icon&&!l.icon.startsWith('si:')?l.icon:'🔗';
+function lkIcon(l,info){const slug=(l.icon||'').startsWith('si:')?l.icon.slice(3):'',av=info&&info.icon&&safeUrl(info.icon),cu=l.icon_url&&safeUrl(l.icon_url),ib=el('span',{class:'lk-ic'});
+  if(cu)ib.append(isVid(cu)?mkVideo(cu,'lk-av'):el('img',{class:'lk-av',src:cu,alt:'',loading:'lazy'}));else if(av)ib.append(el('img',{class:'lk-av',src:av,alt:'',loading:'lazy'}));else if(PLAT[slug]){const im=el('img',{class:'lk-i',src:'https://cdn.simpleicons.org/'+slug+'/white',alt:'',loading:'lazy'});im.addEventListener('error',()=>im.remove());ib.append(im)}else ib.textContent=l.icon&&!l.icon.startsWith('si:')?l.icon:'🔗';
   return{ib,slug}}
+/* v18.3: màu, banner tự đặt cho link (chế độ Social và Link) luôn ghi đè màu và icon mặc định của nền tảng */
+function lkLook(a,l,slug){const c=/^#[0-9a-f]{6}$/i.test(l.color||'')?l.color:'';
+  if(c){a.style.setProperty('--bc',c);a.classList.add('has-c')}else if(PLAT[slug])a.style.setProperty('--bc',PLAT[slug][1]);
+  const u=l.banner_url&&safeUrl(l.banner_url);if(!u)return;
+  a.classList.add('has-bn');const b=el('span',{class:'lk-bn'});b.append(isVid(u)?mkVideo(u,'lk-bnm'):el('img',{class:'lk-bnm',src:u,alt:'',loading:'lazy'}));a.prepend(b)}
 function blkSocial(items){const box=el('div',{class:'links'+(((D.settings||{}).layout||{}).links==='grid'?'':' list')});items.forEach((l,i)=>{const href=safeUrl(l.url);if(!href)return;
     const info=l.info,{ib,slug}=lkIcon(l,info);
     const a=el('a',{class:'link sp rp rv',href,target:'_blank',rel:'noopener noreferrer'});
-    if(PLAT[slug])a.style.setProperty('--bc',PLAT[slug][1]);
     a.append(ib,el('span',{class:'lk-tx'},el('b',{text:l.label}),el('small',{text:info?info.name:host(href)})),ic(IC.arrow,'lk-ar'));
     if(l.note)a.append(el('p',{class:'lk-note',text:l.note}));
-    if(info)a.append(el('div',{class:'lk-st'},el('span',{},el('i',{class:'on'}),(info.online||0).toLocaleString('vi-VN')+' online'),el('span',{},ic(IC.users),(info.members||0).toLocaleString('vi-VN')+' thành viên')));a.style.setProperty('--i',i+2);box.append(a)});return box}
+    if(info)a.append(el('div',{class:'lk-st'},el('span',{},el('i',{class:'on'}),(info.online||0).toLocaleString('vi-VN')+' online'),el('span',{},ic(IC.users),(info.members||0).toLocaleString('vi-VN')+' thành viên')));a.style.setProperty('--i',i+2);lkLook(a,l,slug);box.append(a)});return box}
 /* chế độ Link: link chia sẻ, có mô tả hiện đầy đủ */
 function blkLink(items){const box=el('div',{class:'shl'});items.forEach((l,i)=>{const href=safeUrl(l.url);if(!href)return;
     const{ib,slug}=lkIcon(l);ib.className='shl-ic';
-    const a=el('a',{class:'shl-i sp rp rv',href,target:'_blank',rel:'noopener noreferrer'});if(PLAT[slug])a.style.setProperty('--bc',PLAT[slug][1]);
+    const a=el('a',{class:'shl-i sp rp rv',href,target:'_blank',rel:'noopener noreferrer'});
     const tx=el('span',{class:'shl-tx'},el('b',{text:l.label}));if(l.note)tx.append(el('span',{class:'shl-n',text:l.note}));tx.append(el('small',{class:'shl-h',text:host(href)}));
-    a.append(ib,tx,ic(IC.arrow,'lk-ar'));a.style.setProperty('--i',i+2);box.append(a)});return box}
+    a.append(ib,tx,ic(IC.arrow,'lk-ar'));a.style.setProperty('--i',i+2);lkLook(a,l,slug);box.append(a)});return box}
 /* chế độ Ảnh & video: lưới ảnh, bấm để xem lớn; link không tải được thì mở như link thường */
 function openMedia(l,href,v){const d=$('#mdlg'),m=v?el('video',{src:href,controls:'',autoplay:'',loop:'',playsinline:''}):el('img',{src:href,alt:l.label||''}),cp=[l.label,l.note].filter(Boolean).join(' · ');
   $('#mbody').replaceChildren(m,...(cp?[el('div',{class:'ml-cap',text:cp})]:[]));d.showModal()}
