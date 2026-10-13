@@ -344,5 +344,5 @@ async function codeOf(env, ctx, id, request) {
   const row = await env.DB.prepare('SELECT code FROM scripts WHERE id = ? AND published = 1').bind(id).first();
   if (!row) return new Response('Not found', { status: 404 });
   ctx.waitUntil(bump(env, 'copy', id, request));
-  return new Response(row.code, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' 'X-Content-Type-Options': 'nosniff' } });
+  return new Response(row.code, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
 }
