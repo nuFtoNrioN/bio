@@ -194,7 +194,15 @@ async function getProfile(env) {
   return { ...ex, name: row.name, bio: row.bio, avatar_url: row.avatar_url };
 }
 
+// v18.3: links.extra là JSON {i: icon, b: banner, c: màu}; trả ra thành icon_url, banner_url, color
+const flatLinks = (rows) => rows.map((r) => {
+  if (!('extra' in r)) return r;
+  const { extra, ...o } = r; let e = {}; try { e = JSON.parse(extra || '{}'); } catch (x) { /* bỏ qua */ }
+  return { ...o, icon_url: e.i || '', banner_url: e.b || '', color: e.c || '' };
+});
 async function getLinks(env) {
+  try { return flatLinks((await env.DB.prepare('SELECT label, url, icon, tab_id, note, mode, extra FROM links ORDER BY sort, id').all()).results); }
+  catch (e) { /* chưa chạy migration 010 */ }
   try { return (await env.DB.prepare('SELECT label, url, icon, tab_id, note, mode FROM links ORDER BY sort, id').all()).results; }
   catch (e) { /* chưa chạy migration 009 */ }
   try { return (await env.DB.prepare('SELECT label, url, icon, tab_id, note FROM links ORDER BY sort, id').all()).results; }
