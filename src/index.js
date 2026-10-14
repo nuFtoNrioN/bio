@@ -284,15 +284,26 @@ async function homePage(request, env, sid) {
   } catch (e) { return res; }
 }
 
+// v19: scripts.extra là JSON {g: [ảnh minh họa, tối đa 3], k: {n: mô tả key, u: link lấy key}}; k có mặt nghĩa là script cần key.
+// Trả ra thành images (mảng), has_key, key_note, key_url
+const flatScripts = (rows) => rows.map((r) => {
+  if (!('extra' in r)) return r;
+  const { extra, ...o } = r; let e = {}; try { e = JSON.parse(extra || '{}'); } catch (x) { /* bỏ qua */ }
+  const k = e && typeof e.k === 'object' && e.k ? e.k : null;
+  return { ...o, images: Array.isArray(e.g) ? e.g.filter((u) => /^https:\/\//.test(u)).slice(0, 3) : [], has_key: !!k, key_note: (k && k.n) || '', key_url: (k && k.u) || '' };
+});
+
 async function getScripts(env) {
   const base = 'id, title, description, game, image_url, status, runs, copies, tab_id, updated_at';
+  const full = ", version, changelog, features, howto, executors, created_at, LENGTH(code) AS size, (LENGTH(code) - LENGTH(REPLACE(code, char(10), '')) + 1) AS lines";
   const tiers = [
-    base + ", version, changelog, features, howto, executors, created_at, LENGTH(code) AS size, (LENGTH(code) - LENGTH(REPLACE(code, char(10), '')) + 1) AS lines FROM scripts WHERE published = 1 ORDER BY sort, updated_at DESC",
+    base + full + ', extra FROM scripts WHERE published = 1 ORDER BY sort, updated_at DESC', // v19: có ảnh minh họa và key (cần migration 011)
+    base + full + ' FROM scripts WHERE published = 1 ORDER BY sort, updated_at DESC',
     base + ', version, changelog FROM scripts WHERE published = 1 ORDER BY sort, updated_at DESC',
     base + ' FROM scripts WHERE published = 1 ORDER BY updated_at DESC',
   ];
   for (let i = 0; i < tiers.length; i++) {
-    try { return (await env.DB.prepare('SELECT ' + tiers[i]).all()).results; } catch (e) { if (i === tiers.length - 1) throw e; }
+    try { return flatScripts((await env.DB.prepare('SELECT ' + tiers[i]).all()).results); } catch (e) { if (i === tiers.length - 1) throw e; }
   }
 }
 
