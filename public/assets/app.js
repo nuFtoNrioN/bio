@@ -1,6 +1,6 @@
 const $=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)];
 const ST={working:['Đang chạy','working'],patched:['Đã bị patch','patched'],outdated:['Cũ','outdated']};
-const IC={arrow:'M7 17L17 7M9 7h8v8',play:'M8 5v14l11-7z',copy:'M9 9h10v10H9zM5 15V5h10',code:'M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14',x:'M6 6l12 12M18 6L6 18',down:'M6 9l6 6 6-6',right:'M9 6l6 6-6 6',users:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8'};
+const IC={arrow:'M7 17L17 7M9 7h8v8',play:'M8 5v14l11-7z',copy:'M9 9h10v10H9zM5 15V5h10',code:'M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14',x:'M6 6l12 12M18 6L6 18',down:'M6 9l6 6 6-6',right:'M9 6l6 6-6 6',left:'M15 18l-6-6 6-6',check:'M20 6L9 17l-5-5',ext:'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3',key:'M21 2l-2 2m-7.6 7.6a5.5 5.5 0 1 1-7.8 7.8 5.5 5.5 0 0 1 7.8-7.8zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4',users:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8'};
 function ic(d,c=''){const N='http://www.w3.org/2000/svg',s=document.createElementNS(N,'svg'),p=document.createElementNS(N,'path');s.setAttribute('viewBox','0 0 24 24');s.setAttribute('class','i '+c);p.setAttribute('d',d);s.append(p);return s}
 function el(tag,attrs={},...kids){const e=document.createElement(tag);for(const[k,v]of Object.entries(attrs)){if(k==='class')e.className=v;else if(k==='text')e.textContent=v;else if(k.startsWith('on'))e.addEventListener(k.slice(2),v);else e.setAttribute(k,v)}kids.forEach(c=>e.append(c));return e}
 const safeUrl=(u)=>{try{const x=new URL(u);return x.protocol==='https:'?x.href:null}catch{return null}};
@@ -22,7 +22,7 @@ const rawLink=(s,cls)=>safeUrl(rawUrl(s))?el('a',{class:cls,href:safeUrl(rawUrl(
 function card(s,i){
   const st=ST[s.status]||ST.working,img=safeUrl(s.image_url);
   const c=el('article',{class:'scard sp rp rv',tabindex:'0',role:'button','aria-label':'Xem chi tiết '+s.title},
-    el('div',{class:'sthumb'},img?el('img',{src:img,alt:'',loading:'lazy'}):el('div',{class:'sph'},ic(IC.code)),el('span',{class:'badge '+st[1],text:st[0]})),
+    el('div',{class:'sthumb'},img?el('img',{src:img,alt:'',loading:'lazy'}):el('div',{class:'sph'},ic(IC.code)),el('span',{class:'badge '+st[1],text:st[0]}),s.has_key?el('span',{class:'badge kbadge',title:'Script này cần key'},ic(IC.key),'Key'):''),
     el('div',{class:'sbody'},
       el('h3',{text:s.title}),s.game?el('div',{class:'smeta',text:s.game}):'',
       el('div',{class:'sstats'},el('span',{title:'Lượt chạy'},ic(IC.play),String(s.runs)),el('span',{title:'Lượt copy'},ic(IC.copy),String(s.copies)))));
@@ -30,17 +30,32 @@ function card(s,i){
   c.onclick=()=>openDlg(s);c.onkeydown=(e)=>{if(e.key==='Enter'&&e.target===c)openDlg(s)};
   return c}
 
+function popHero(imgs,st){
+  const h=el('div',{class:'pp-hero'}),badge=el('span',{class:'badge '+st[1],text:st[0]}),ph=()=>el('div',{class:'sph'},ic(IC.code));
+  if(!imgs.length){h.append(ph(),badge);return h}
+  const tr=el('div',{class:'pp-gal'});
+  imgs.forEach((u,i)=>{const im=el('img',{src:u,alt:'Ảnh minh họa '+(i+1),loading:i?'lazy':'eager',draggable:'false'});im.onerror=()=>im.replaceWith(ph());tr.append(im)});
+  h.append(tr,badge);
+  if(imgs.length>1){
+    const dots=imgs.map((_,i)=>el('button',{class:'pp-dot',type:'button','aria-label':'Ảnh '+(i+1),onclick:()=>go(i)})),
+      pv=el('button',{class:'pp-nav prev',type:'button','aria-label':'Ảnh trước',onclick:()=>go(cur()-1)},ic(IC.left)),
+      nx=el('button',{class:'pp-nav next',type:'button','aria-label':'Ảnh sau',onclick:()=>go(cur()+1)},ic(IC.right));
+    const cur=()=>Math.round(tr.scrollLeft/Math.max(1,tr.clientWidth)),
+      go=(i)=>tr.scrollTo({left:Math.min(imgs.length-1,Math.max(0,i))*tr.clientWidth,behavior:'smooth'}),
+      mark=()=>{const c=Math.min(imgs.length-1,Math.max(0,cur()));dots.forEach((x,k)=>x.classList.toggle('on',k===c));pv.disabled=c===0;nx.disabled=c===imgs.length-1};
+    tr.addEventListener('scroll',mark,{passive:true});mark();
+    h.append(el('div',{class:'pp-dots'},...dots),pv,nx);
+  }
+  return h}
 const SRE=/^\/s\/([a-z0-9-]{2,40})$/;
 function openDlg(s,mode){
-  const d=$('#dlg'),b=$('#dbody'),st=ST[s.status]||ST.working,img=safeUrl(s.image_url);b.replaceChildren();
+  const d=$('#dlg'),b=$('#dbody'),st=ST[s.status]||ST.working;b.replaceChildren();
   const fd=t=>new Date(t).toLocaleDateString('vi-VN'),rows=t=>String(t||'').split('\n').map(x=>x.trim()).filter(Boolean);
   const cc=el('button',{class:'btn primary rp',type:'button',text:'Copy code',onclick:()=>copyCode(s,cc)});
-  const cl=el('button',{class:'btn rp',type:'button',text:'Copy lệnh loadstring',onclick:()=>copyCmd(s,cl)});
-  const lk=el('button',{class:'btn rp',type:'button',text:'Copy link script',onclick:()=>copyText(location.origin+'/s/'+s.id).then(ok=>flash(lk,ok?'Đã copy link':'Không copy được'))});
+  const cl=el('button',{class:'btn rp',type:'button',text:'Copy loadstring',onclick:()=>copyCmd(s,cl)});
+  const lk=el('button',{class:'btn rp',type:'button',text:'Copy link',onclick:()=>copyText(location.origin+'/s/'+s.id).then(ok=>flash(lk,ok?'Đã copy link':'Không copy được'))});
   const dl=el('a',{class:'btn rp',href:'/api/download/'+s.id,download:s.id+'.lua',text:'Download'});
-  const pre=el('pre',{class:'cmd pvc',text:'Đang tải...'}),pw=el('div',{},el('div',{class:'pvh',text:'Xem trước code (cuộn để xem thêm)'}),pre);
-  const cells=[['Phiên bản',s.version||'–'],['Cập nhật',fd(s.updated_at)],s.created_at?['Ngày đăng',fd(s.created_at)]:null,s.lines?['Độ dài',s.lines+' dòng, '+(s.size/1024).toFixed(1)+' KB']:null,
-    s.executors?['Hỗ trợ',s.executors]:null,['Lượt chạy',String(s.runs)],['Lượt copy',String(s.copies)]].filter(Boolean);
+  const pre=el('pre',{class:'cmd pvc',text:'Đang tải...'}),pw=el('div',{},el('div',{class:'pp-h',text:'Xem trước code'}),pre);
   const vw=el('div',{class:'vwrap'});
   fetch('/api/versions/'+s.id).then(r=>r.ok?r.json():[]).catch(()=>[]).then(list=>{
     if(!list.length&&s.version)list=[{version:s.version,changelog:s.changelog||'',created_at:s.updated_at}];
@@ -60,19 +75,26 @@ function openDlg(s,mode){
     if(many){menu.append(...opts);pick.onclick=()=>{setMenu(menu.hidden);if(!menu.hidden)menu.scrollIntoView({block:'nearest',behavior:'smooth'})}}else pick.classList.add('one');
     tg.onclick=()=>{const o=!box.classList.contains('open');box.classList.toggle('open',o);tg.classList.toggle('open',o);tg.setAttribute('aria-expanded',String(o))};
     vw.addEventListener('keydown',(e)=>{if(e.key==='Escape'&&!menu.hidden){e.preventDefault();e.stopPropagation();setMenu(false)}});
-    vw.append(el('div',{class:'pvh',text:'Lịch sử phiên bản'}),el('div',{class:'vpick'},pick,menu),tg,box);show()});
-  b.append(el('button',{class:'dclose',type:'button','aria-label':'Đóng',onclick:()=>d.close()},ic(IC.x)),
-    img?el('img',{class:'dimg',src:img,alt:''}):'',
-    el('div',{class:'card-head'},el('h3',{text:s.title}),el('span',{class:'badge '+st[1],text:st[0]})),
-    s.game?el('div',{class:'meta',text:s.game}):'',
-    s.description?el('p',{class:'desc',style:'white-space:pre-line',text:s.description}):'',
-    el('div',{class:'info'},...cells.map(([k,v])=>el('div',{},el('span',{text:k}),el('b',{text:v})))),
-    rows(s.features).length?el('div',{},el('div',{class:'pvh',text:'Tính năng'}),el('ul',{class:'feat'},...rows(s.features).map(t=>el('li',{text:t})))):'',
-    s.howto?el('div',{},el('div',{class:'pvh',text:'Hướng dẫn sử dụng'}),el('p',{class:'howto',text:s.howto})):'',
-    vw,pw,D.raw_url?el('pre',{class:'cmd',text:cmdOf(s)}):'',
-    el('div',{class:'dact'},cc,D.raw_url?cl:'',lk,rawLink(s,'btn rp'),dl));
+    vw.append(el('div',{class:'pp-h',text:'Lịch sử phiên bản'}),el('div',{class:'vpick'},pick,menu),tg,box);show()});
+  const imgs=(Array.isArray(s.images)&&s.images.length?s.images:[s.image_url]).map(safeUrl).filter(Boolean),kurl=safeUrl(s.key_url),hw=rows(s.howto),ft=rows(s.features);
+  const stat=(icon,val,lab)=>el('div',{class:'pp-st'},ic(icon),el('b',{text:val}),el('span',{text:lab}));
+  const kv=[['Phiên bản',s.version],['Cập nhật',fd(s.updated_at)],s.created_at?['Ngày đăng',fd(s.created_at)]:null,s.executors?['Hỗ trợ',s.executors]:null].filter(x=>x&&x[1]);
+  const sec=(t,...k)=>el('div',{},el('div',{class:'pp-h',text:t}),...k);
+  b.append(el('div',{class:'pp-top'},el('button',{class:'dclose',type:'button','aria-label':'Đóng',onclick:()=>d.close()},ic(IC.x))),
+    popHero(imgs,st),
+    el('div',{class:'pp-pad'},
+      el('div',{class:'pp-head'},el('h3',{class:'pp-title',text:s.title}),(s.game||s.version)?el('div',{class:'pp-chips'},s.game?el('span',{class:'pp-chip game',text:s.game}):'',s.version?el('span',{class:'pp-chip',text:s.version}):''):''),
+      s.has_key?el('div',{class:'pp-key',role:'note'},el('span',{class:'pp-key-i'},ic(IC.key)),el('div',{},el('b',{text:'Script này cần Key để chạy trong game'}),s.key_note?el('p',{text:s.key_note}):'',kurl?el('a',{class:'pp-key-btn rp',href:kurl,target:'_blank',rel:'noopener noreferrer'},ic(IC.ext),'Lấy Key'):'')):'',
+      s.description?el('p',{class:'pp-desc',text:s.description}):'',
+      el('div',{class:'pp-stats'},stat(IC.play,nf(s.runs||0),'Lượt chạy'),stat(IC.copy,nf(s.copies||0),'Lượt copy'),s.lines?stat(IC.code,String(s.lines),'dòng · '+(s.size/1024).toFixed(1)+' KB'):''),
+      ft.length?sec('Tính năng',el('ul',{class:'pp-feat'},...ft.map(t=>el('li',{},ic(IC.check),el('span',{text:t}))))):'',
+      hw.length?sec('Hướng dẫn sử dụng',hw.length>1?el('ol',{class:'pp-steps'},...hw.map(t=>el('li',{},el('span',{text:t})))):el('p',{class:'howto',text:hw[0]})):'',
+      kv.length?el('div',{class:'pp-kv'},...kv.map(([k,v])=>el('div',{class:'pp-r'},el('span',{text:k}),el('b',{text:v})))):'',
+      vw,pw,D.raw_url?el('pre',{class:'cmd',text:cmdOf(s)}):'',
+      el('div',{class:'pp-more'},lk,rawLink(s,'btn rp'),dl)),
+    el('div',{class:'pp-bar'},cc,D.raw_url?cl:''));
   fetch('/api/preview/'+s.id).then(r=>r.ok?r.text():'').then(t=>{if(t)pre.textContent=t;else pw.remove()}).catch(()=>pw.remove());
-  d.showModal();
+  d.showModal();d.scrollTop=0;
   if(mode!=='pop')fetch('/api/open/'+s.id,{method:'POST'}).catch(()=>{});
   if(mode==='init')history.replaceState({s:s.id,init:1},'','/s/'+s.id);else if(mode!=='pop')history.pushState({s:s.id},'','/s/'+s.id)}
 $('#dlg').addEventListener('close',()=>{const st=history.state;if(st&&st.s){if(st.init)history.replaceState(null,'','/');else history.back()}});
