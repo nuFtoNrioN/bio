@@ -198,7 +198,7 @@ async function getProfile(env) {
 const flatLinks = (rows) => rows.map((r) => {
   if (!('extra' in r)) return r;
   const { extra, ...o } = r; let e = {}; try { e = JSON.parse(extra || '{}'); } catch (x) { /* bỏ qua */ }
-  return { ...o, icon_url: e.i || '', banner_url: e.b || '', color: e.c || '' };
+  return { ...o, icon_url: e.i || '', banner_url: e.b || '', color: e.c || '', section_id: Number(e.s) || 0 };
 });
 async function getLinks(env) {
   try { return flatLinks((await env.DB.prepare('SELECT label, url, icon, tab_id, note, mode, extra FROM links ORDER BY sort, id').all()).results); }
@@ -207,6 +207,12 @@ async function getLinks(env) {
   catch (e) { /* chưa chạy migration 009 */ }
   try { return (await env.DB.prepare('SELECT label, url, icon, tab_id, note FROM links ORDER BY sort, id').all()).results; }
   catch (e) { return (await env.DB.prepare('SELECT label, url, icon, tab_id FROM links ORDER BY sort, id').all()).results; }
+}
+
+// v20: section trong tab; chưa chạy migration 012 thì không có bảng, trả về mảng rỗng
+async function getSections(env) {
+  try { return (await env.DB.prepare('SELECT id, tab_id, title, sub, open, search FROM sections ORDER BY sort, id').all()).results; }
+  catch (e) { return []; }
 }
 
 // Tab kèm chế độ, chức năng (opts) và nội dung ghi chú (body); chưa chạy migration 009 thì rơi về cột cũ
@@ -290,7 +296,7 @@ const flatScripts = (rows) => rows.map((r) => {
   if (!('extra' in r)) return r;
   const { extra, ...o } = r; let e = {}; try { e = JSON.parse(extra || '{}'); } catch (x) { /* bỏ qua */ }
   const k = e && typeof e.k === 'object' && e.k ? e.k : null;
-  return { ...o, images: Array.isArray(e.g) ? e.g.filter((u) => /^https:\/\//.test(u)).slice(0, 3) : [], has_key: !!k, key_note: (k && k.n) || '', key_url: (k && k.u) || '' };
+  return { ...o, images: Array.isArray(e.g) ? e.g.filter((u) => /^https:\/\//.test(u)).slice(0, 3) : [], has_key: !!k, key_note: (k && k.n) || '', key_url: (k && k.u) || '', section_id: Number(e.s) || 0 };
 });
 
 async function getScripts(env) {
@@ -342,7 +348,7 @@ async function publicSite(env) {
     {
       settings,
       profile: await getProfile(env),
-      tabs, links: await withDiscord(await getLinks(env)), scripts: await getScripts(env),
+      tabs, sections: await getSections(env), links: await withDiscord(await getLinks(env)), scripts: await getScripts(env),
       raw_url: (env.RAW_URL || '').replace(/\/$/, ''),
     },
     200,
