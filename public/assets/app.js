@@ -138,12 +138,22 @@ function blkLink(items){const box=el('div',{class:'shl'});items.forEach((l,i)=>{
 /* chế độ Ảnh & video: lưới ảnh, bấm để xem lớn; link không tải được thì mở như link thường */
 function openMedia(l,href,v){const d=$('#mdlg'),m=v?el('video',{src:href,controls:'',autoplay:'',loop:'',playsinline:''}):el('img',{src:href,alt:l.label||''}),cp=[l.label,l.note].filter(Boolean).join(' · ');
   $('#mbody').replaceChildren(m,...(cp?[el('div',{class:'ml-cap',text:cp})]:[]));d.showModal()}
-function blkMedia(items){const g=el('div',{class:'mg'});items.forEach((l,i)=>{const href=safeUrl(l.url);if(!href)return;
+function mediaGrid(items){const g=el('div',{class:'mg'});items.forEach((l,i)=>{const href=safeUrl(l.url);if(!href)return;
     const v=isVid(href),b=el('button',{class:'mg-i sp rp rv',type:'button','aria-label':l.label||'Xem lớn'});b.style.setProperty('--i',i+2);let bad=false;
     const th=v?mkVideo(href):el('img',{src:href,alt:l.label||'',loading:'lazy'});
     th.addEventListener('error',()=>{bad=true;th.replaceWith(el('span',{class:'mg-ph',text:'🔗'}))});
     b.append(th);if(l.label)b.append(el('span',{class:'mg-cap',text:l.label}));
     b.onclick=()=>{if(bad)open(href,'_blank','noopener');else openMedia(l,href,v)};g.append(b)});return g}
+/* v20: link TikTok / YouTube trong tab Ảnh & video được nhúng. Chưa bấm thì chỉ là khung (không tải gì của bên thứ ba); bấm mới nạp iframe */
+function blkEmbed(items){const g=el('div',{class:'eg'});items.forEach((l,i)=>{const e=embedOf(safeUrl(l.url));if(!e)return;
+    const c=el('div',{class:'emb sp rv '+e.p+(e.ratio==='9/16'?' tall':'')}),f=el('button',{class:'emb-f rp',type:'button','aria-label':'Phát video '+(l.label||e.label)});c.style.setProperty('--i',i+2);
+    if(e.thumb)f.style.backgroundImage='url("'+e.thumb+'")';
+    f.append(el('span',{class:'emb-pl'},ic(IC.play)),el('span',{class:'emb-lb'},el('b',{text:l.label||(e.label+' video')}),el('small',{text:e.label})));
+    f.onclick=()=>{const fr=el('iframe',{class:'emb-v',src:e.src+(e.p==='youtube'?'?autoplay=1&rel=0&playsinline=1':''),title:l.label||e.label,allow:'autoplay; encrypted-media; fullscreen; picture-in-picture',referrerpolicy:'strict-origin-when-cross-origin'});
+      fr.setAttribute('allowfullscreen','');fr.setAttribute('sandbox','allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation');c.classList.add('on');f.replaceWith(fr)};
+    c.append(f);if(l.note)c.append(el('p',{class:'emb-n',text:l.note}));g.append(c)});return g}
+function blkMedia(items){const emb=[],rest=[];items.forEach(l=>{const h=safeUrl(l.url);(h&&embedOf(h)?emb:rest).push(l)});
+  if(!emb.length)return mediaGrid(rest);const w=el('div',{class:'mw'});if(rest.length)w.append(mediaGrid(rest));w.append(blkEmbed(emb));return w}
 $('#mdlg').addEventListener('click',(e)=>{if(e.target===e.currentTarget)e.currentTarget.close()});
 $('#mx').addEventListener('click',()=>$('#mdlg').close());
 $('#mdlg').addEventListener('close',()=>{const v=$('#mbody video');if(v)v.pause();$('#mbody').replaceChildren()});
@@ -158,8 +168,8 @@ function blkNote(t){const L=parseNotes(t.body).filter(n=>n.title||n.text),box=el
     const c=el('article',{class:'nt rv'},hd,vb);c.style.setProperty('--i',i+2);box.append(c)});
   return box}
 function blkScript(items,tools){const w=el('div'),g=el('div',{class:'grid'});
-    const fill=()=>{const q=F.q.trim().toLowerCase();let l=items.filter(s=>(F.st==='all'||s.status===F.st)&&(!q||(s.title+' '+(s.game||'')+' '+(s.description||'')).toLowerCase().includes(q)));
-      if(F.sort==='runs')l=[...l].sort((a,b)=>b.runs-a.runs);else if(F.sort==='new')l=[...l].sort((a,b)=>b.updated_at-a.updated_at);
+    const fill=()=>{const f=tools?F:{q:'',st:'all',sort:'def'},q=f.q.trim().toLowerCase();let l=items.filter(s=>(f.st==='all'||s.status===f.st)&&(!q||(s.title+' '+(s.game||'')+' '+(s.description||'')).toLowerCase().includes(q)));
+      if(f.sort==='runs')l=[...l].sort((a,b)=>b.runs-a.runs);else if(f.sort==='new')l=[...l].sort((a,b)=>b.updated_at-a.updated_at);
       g.replaceChildren(...(l.length?l.map((s,i)=>card(s,i)):[el('div',{class:'empty',style:'grid-column:1/-1',text:'Không có script nào khớp.'})]))};
     if(tools&&items.length>=3){
       const q=el('input',{class:'sq',type:'search',placeholder:'Tìm script hoặc game...','aria-label':'Tìm script'});q.value=F.q;q.addEventListener('input',()=>{F.q=q.value;fill()});
@@ -168,15 +178,28 @@ function blkScript(items,tools){const w=el('div'),g=el('div',{class:'grid'});
       w.append(el('div',{class:'tools'},q,so,el('div',{class:'fchips'},...chips)))}
     w.append(g);fill();return w}
 const BH={social:'Mạng xã hội',link:'Link',media:'Ảnh & video',script:'Script'};
-/* một tab có thể có nhiều khối (tab Khác): ghi chú, social, link, ảnh & video, script */
-function drawPanel(){const t=D.tabs.find(x=>x.id===TAB),p=$('#panel');p.replaceChildren();if(!t)return;
-  const blocks=[];
+/* một tab có thể có nhiều khối (tab Khác): ghi chú, social, link, ảnh & video, script.
+   v20: mục nào đã vào section thì nằm trong section đó; mục chưa vào section hiện trước, rồi tới các section theo thứ tự */
+const OPEN={},CARD='.scard,.link,.shl-i,.mg-i,.emb';
+function blocksFor(t,sid){const SC=(x)=>secOf(D.sections,t.id,x),out=[];
   tabFeats(t).forEach(k=>{
-    if(k==='note'){if(parseNotes(t.body).some(n=>n.title||n.text))blocks.push(['note',blkNote(t)])}
-    else if(LINK_FEATS.includes(k)){const it=D.links.filter(l=>{const pl=linkPlace(D.tabs,l);return pl.tab&&pl.tab.id===t.id&&pl.mode===k});if(it.length)blocks.push([k,({social:blkSocial,link:blkLink,media:blkMedia})[k](it)])}
-    else if(k==='script'){const it=D.scripts.filter(s=>{const x=pickTab(D.tabs,'script',s.tab_id);return x&&x.id===t.id});if(it.length)blocks.push(['script',blkScript(it,t.kind==='custom'?tabOpts(t).tools:true)])}});
-  if(!blocks.length){p.append(el('div',{class:'empty',text:'Chưa có gì ở tab này.'}));return}
-  blocks.forEach(([k,n])=>{const w=el('section',{class:'blk'});if(blocks.length>1&&BH[k])w.append(el('h3',{class:'blk-h',text:BH[k]}));w.append(n);p.append(w)})}
+    if(k==='note'){if(!sid&&parseNotes(t.body).some(n=>n.title||n.text))out.push(['note',blkNote(t)])}
+    else if(LINK_FEATS.includes(k)){const it=D.links.filter(l=>{const pl=linkPlace(D.tabs,l);return pl.tab&&pl.tab.id===t.id&&pl.mode===k&&SC(l)===sid});if(it.length)out.push([k,({social:blkSocial,link:blkLink,media:blkMedia})[k](it)])}
+    else if(k==='script'){const it=D.scripts.filter(s=>{const x=pickTab(D.tabs,'script',s.tab_id);return x&&x.id===t.id&&SC(s)===sid});if(it.length)out.push(['script',blkScript(it,!sid&&(t.kind==='custom'?tabOpts(t).tools:true))])}});
+  return out}
+function addBlocks(box,blocks){blocks.forEach(([k,n])=>{const w=el('section',{class:'blk'});if(blocks.length>1&&BH[k])w.append(el('h3',{class:'blk-h',text:BH[k]}));w.append(n);box.append(w)})}
+function blkSection(s,blocks){const sv=OPEN[s.id],open=sv===undefined?!!s.open:sv,inn=el('div',{class:'sec-in'}),w=el('section',{class:'sec rv'+(open?' open':'')},el('div'),el('div',{class:'sec-bx'},inn)),cnt=el('span',{class:'sec-n'}),
+    hd=el('button',{class:'sec-h rp',type:'button','aria-expanded':String(open)},el('span',{class:'sec-t'},el('b',{text:s.title}),...(s.sub?[el('small',{text:s.sub})]:[])),cnt,ic(IC.down,'sec-c'));
+  hd.onclick=()=>{const o=!w.classList.contains('open');w.classList.toggle('open',o);hd.setAttribute('aria-expanded',String(o));OPEN[s.id]=o};
+  let q,none;if(s.search){q=el('input',{class:'sq sec-q',type:'search',placeholder:'Tìm trong '+s.title+'...','aria-label':'Tìm trong section '+s.title});none=el('div',{class:'empty',hidden:'',text:'Không có kết quả.'});inn.append(q)}
+  addBlocks(inn,blocks);if(none)inn.append(none);
+  const cards=[...inn.querySelectorAll(CARD)];cnt.textContent=String(cards.length);
+  if(q)q.addEventListener('input',()=>{const v=q.value.trim().toLowerCase();let n=0;cards.forEach(c=>{const hit=!v||(c.textContent+' '+(c.getAttribute('aria-label')||'')).toLowerCase().includes(v);c.hidden=!hit;if(hit)n++});none.hidden=n>0||!v});
+  w.firstChild.replaceWith(hd);return w}
+function drawPanel(){const t=D.tabs.find(x=>x.id===TAB),p=$('#panel');p.replaceChildren();if(!t)return;
+  const top=blocksFor(t,0),secs=(D.sections||[]).filter(s=>s.tab_id===t.id).map(s=>[s,blocksFor(t,s.id)]).filter(([,b])=>b.length);
+  if(!top.length&&!secs.length){p.append(el('div',{class:'empty',text:'Chưa có gì ở tab này.'}));return}
+  addBlocks(p,top);secs.forEach(([s,b])=>p.append(blkSection(s,b)))}
 
 const nf=(n)=>n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n>=1e3?(n/1e3).toFixed(1).replace(/\.0$/,'')+'K':String(n);
 /* khối dưới thẻ hồ sơ (chỉ hiện ở giao diện máy tính): số liệu chung và 2 script mới cập nhật */
