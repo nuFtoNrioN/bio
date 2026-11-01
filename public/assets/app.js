@@ -6,7 +6,8 @@ function el(tag,attrs={},...kids){const e=document.createElement(tag);for(const[
 const safeUrl=(u)=>{try{const x=new URL(u);return x.protocol==='https:'?x.href:null}catch{return null}};
 const host=(u)=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch{return ''}};
 async function copyText(t){try{await navigator.clipboard.writeText(t);return true}catch{const a=el('textarea');a.value=t;document.body.append(a);a.select();const ok=document.execCommand('copy');a.remove();return ok}}
-function flash(b,t){const o=b.dataset.o||b.textContent;b.dataset.o=o;b.textContent=t;setTimeout(()=>b.textContent=o,1500)}
+/* v20.2: nút đổi chữ 1,5 giây và có hiệu ứng nảy (thành công) hoặc rung (lỗi) */
+function flash(b,t){const o=b.dataset.o||b.textContent;b.dataset.o=o;b.textContent=t;b.classList.remove('fl-ok','fl-bad');void b.offsetWidth;b.classList.add(/^(Không|Lỗi)/.test(t)?'fl-bad':'fl-ok');clearTimeout(b._ft);b._ft=setTimeout(()=>{b.textContent=o;b.classList.remove('fl-ok','fl-bad')},1500)}
 let D,TAB;
 const rawUrl=(s)=>D.raw_url?D.raw_url+'/'+s.id:'';
 const cmdOf=(s)=>'loadstring(game:HttpGet("'+rawUrl(s)+'"))()';
@@ -54,7 +55,7 @@ function openDlg(s,mode){
   const cc=el('button',{class:'btn primary rp',type:'button',text:'Copy code',onclick:()=>copyCode(s,cc)});
   const cl=el('button',{class:'btn rp',type:'button',text:'Copy loadstring',onclick:()=>copyCmd(s,cl)});
   const lk=el('button',{class:'btn rp',type:'button',text:'Copy link',onclick:()=>copyText(location.origin+'/s/'+s.id).then(ok=>flash(lk,ok?'Đã copy link':'Không copy được'))});
-  const dl=el('a',{class:'btn rp',href:'/api/download/'+s.id,download:s.id+'.lua',text:'Download'});
+  const dl=el('a',{class:'btn rp',href:'/api/download/'+s.id,download:s.id+'.lua',text:'Download'});dl.addEventListener('click',()=>flash(dl,'✓ Đang tải xuống'));
   const pre=el('pre',{class:'cmd pvc',text:'Đang tải...'}),pw=el('div',{},el('div',{class:'pp-h',text:'Xem trước code'}),pre);
   const vw=el('div',{class:'vwrap'});
   fetch('/api/versions/'+s.id).then(r=>r.ok?r.json():[]).catch(()=>[]).then(list=>{
