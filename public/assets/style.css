@@ -364,7 +364,7 @@ html[data-ui=mobile] .pp-nav{display:none}
 .emb-n{margin:0;padding:10px 14px;font-size:13px;color:var(--text-2)}
 html[data-ui=mobile] .eg{grid-template-columns:1fr}
 
-/* v20.2: hiệu ứng khi bấm nút (nhấn xuống, nảy khi copy/tải xong, rung khi lỗi) */
+/* v20.2: hiệu ứng khi bấm nút (nhấn xuống; nảy khi copy xong; rung khi lỗi; tô dần khi tải xuống) */
 .btn,.fchip,.sec-h,.emb-f,.tabs button{transition:transform .12s ease,background .2s,border-color .2s,box-shadow .2s}
 .btn:active,.fchip:active,.sec-h:active,.emb-f:active,.tabs button:active{transform:scale(.96)}
 .btn.fl-ok{border-color:#43b581;background:color-mix(in srgb,#43b581 24%,var(--bg-hover));color:#d4f7e6;animation:flpop .5s cubic-bezier(.2,.9,.3,1.3)}
@@ -372,4 +372,14 @@ html[data-ui=mobile] .eg{grid-template-columns:1fr}
 .btn.fl-bad{border-color:#e5484d;background:color-mix(in srgb,#e5484d 22%,var(--bg-hover));animation:flshake .4s}
 @keyframes flpop{0%{transform:scale(.9);box-shadow:0 0 0 0 rgba(67,181,129,.55)}50%{transform:scale(1.07)}100%{transform:scale(1);box-shadow:0 0 0 12px rgba(67,181,129,0)}}
 @keyframes flshake{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
-@media (prefers-reduced-motion:reduce){.btn.fl-ok,.btn.fl-bad{animation:none}.btn:active,.fchip:active,.sec-h:active,.emb-f:active,.tabs button:active{transform:none}}
+/* Download: không xanh; nền màu chủ đạo tô dần từ trái sang phải, mũi tên nhún lên xuống */
+.btn.fl-dl{border-color:var(--accent);color:#fff;background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 65%,transparent),var(--accent)) no-repeat left center/0% 100%,var(--bg-hover);animation:fldl 1.5s ease-in-out forwards}
+.btn.fl-dl::before{content:"↓";display:inline-block;font-weight:700;animation:fldrop .6s ease-in-out infinite}
+@keyframes fldl{from{background-size:0% 100%,auto}to{background-size:100% 100%,auto}}
+@keyframes fldrop{0%,100%{transform:translateY(-2px)}50%{transform:translateY(3px)}}
+/* ô chứa code: viền xanh, dải sáng chạy một vòng quanh ô rồi tắt cùng lúc với nút (1,5 giây) */
+@property --fa{syntax:'<angle>';initial-value:0deg;inherits:false}
+.fl-box{border-color:#43b581!important;box-shadow:0 0 14px rgba(67,181,129,.28)}
+.flb{position:absolute;z-index:6;box-sizing:border-box;padding:3px;pointer-events:none;filter:drop-shadow(0 0 5px #43b581);background:conic-gradient(from var(--fa),transparent 0 55%,rgba(67,181,129,.25) 65%,#43b581 88%,#d8fbe9 100%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:flrun 1.5s linear forwards}
+@keyframes flrun{from{--fa:0deg}to{--fa:360deg}}
+@media (prefers-reduced-motion:reduce){.btn.fl-ok,.btn.fl-bad,.btn.fl-dl,.btn.fl-dl::before{animation:none}.btn.fl-dl{background-size:100% 100%}.flb{animation:none;background:#43b581}.btn:active,.fchip:active,.sec-h:active,.emb-f:active,.tabs button:active{transform:none}}
