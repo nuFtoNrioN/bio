@@ -296,7 +296,7 @@ const flatScripts = (rows) => rows.map((r) => {
   if (!('extra' in r)) return r;
   const { extra, ...o } = r; let e = {}; try { e = JSON.parse(extra || '{}'); } catch (x) { /* bỏ qua */ }
   const k = e && typeof e.k === 'object' && e.k ? e.k : null;
-  return { ...o, images: Array.isArray(e.g) ? e.g.filter((u) => /^https:\/\//.test(u)).slice(0, 3) : [], has_key: !!k, key_note: (k && k.n) || '', key_url: (k && k.u) || '', section_id: Number(e.s) || 0 };
+  return { ...o, images: Array.isArray(e.g) ? e.g.filter((u) => /^https:\/\//.test(u)).slice(0, 3) : [], has_key: !!k, key_note: (k && k.n) || '', key_url: (k && k.u) || '', section_id: Number(e.s) || 0, show_cmd: !e.h };
 });
 
 async function getScripts(env) {
