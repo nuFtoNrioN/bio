@@ -6,8 +6,12 @@ function el(tag,attrs={},...kids){const e=document.createElement(tag);for(const[
 const safeUrl=(u)=>{try{const x=new URL(u);return x.protocol==='https:'?x.href:null}catch{return null}};
 const host=(u)=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch{return ''}};
 async function copyText(t){try{await navigator.clipboard.writeText(t);return true}catch{const a=el('textarea');a.value=t;document.body.append(a);a.select();const ok=document.execCommand('copy');a.remove();return ok}}
-/* v20.2: nút đổi chữ 1,5 giây và có hiệu ứng nảy (thành công) hoặc rung (lỗi) */
-function flash(b,t){const o=b.dataset.o||b.textContent;b.dataset.o=o;b.textContent=t;b.classList.remove('fl-ok','fl-bad');void b.offsetWidth;b.classList.add(/^(Không|Lỗi)/.test(t)?'fl-bad':'fl-ok');clearTimeout(b._ft);b._ft=setTimeout(()=>{b.textContent=o;b.classList.remove('fl-ok','fl-bad')},1500)}
+/* v20.2: nút đổi chữ 1,5 giây kèm hiệu ứng. kind: ok (xanh, nảy), bad (đỏ, rung), dl (tô dần theo màu chủ đạo, mũi tên rơi).
+   box: ô chứa code, được viền xanh và có dải sáng chạy một vòng, hết cùng lúc với nút */
+function ring(box){const p=box.offsetParent||document.body,o=document.createElement('div');o.className='flb';o.style.cssText='left:'+box.offsetLeft+'px;top:'+box.offsetTop+'px;width:'+box.offsetWidth+'px;height:'+box.offsetHeight+'px;border-radius:'+getComputedStyle(box).borderRadius;p.append(o);box.classList.add('fl-box');return()=>{o.remove();box.classList.remove('fl-box')}}
+function flash(b,t,opt={}){const o=b.dataset.o||b.textContent,k=opt.kind||(/^(Không|Lỗi)/.test(t)?'bad':'ok'),ALL=['fl-ok','fl-bad','fl-dl'];b.dataset.o=o;b.textContent=t;
+  if(b._fx){b._fx();b._fx=null}b.classList.remove(...ALL);void b.offsetWidth;b.classList.add('fl-'+k);if(opt.box&&k==='ok')b._fx=ring(opt.box);
+  clearTimeout(b._ft);b._ft=setTimeout(()=>{b.textContent=o;b.classList.remove(...ALL);if(b._fx){b._fx();b._fx=null}},1500)}
 let D,TAB;
 const rawUrl=(s)=>D.raw_url?D.raw_url+'/'+s.id:'';
 const cmdOf=(s)=>'loadstring(game:HttpGet("'+rawUrl(s)+'"))()';
@@ -16,8 +20,8 @@ const cmdOf=(s)=>'loadstring(game:HttpGet("'+rawUrl(s)+'"))()';
 document.addEventListener('pointerdown',(e)=>{const t=e.target.closest&&e.target.closest('.rp');if(!t)return;const r=t.getBoundingClientRect(),s=Math.max(r.width,r.height)*2.2,x=document.createElement('span');x.className='ripple';x.style.cssText='width:'+s+'px;height:'+s+'px;left:'+(e.clientX-r.left-s/2)+'px;top:'+(e.clientY-r.top-s/2)+'px';t.append(x);setTimeout(()=>x.remove(),650)});
 document.addEventListener('pointermove',(e)=>{const t=e.target.closest&&e.target.closest('.sp');if(!t)return;const r=t.getBoundingClientRect();t.style.setProperty('--mx',(e.clientX-r.left)+'px');t.style.setProperty('--my',(e.clientY-r.top)+'px')},{passive:true});
 
-async function copyCode(s,btn){try{const r=await fetch('/api/code/'+s.id);if(!r.ok)throw 0;flash(btn,(await copyText(await r.text()))?'Đã copy code':'Không copy được')}catch{flash(btn,'Lỗi, thử lại')}}
-function copyCmd(s,btn){copyText(cmdOf(s)).then(ok=>flash(btn,ok?'Đã copy lệnh':'Không copy được'));fetch('/api/copy/'+s.id,{method:'POST'}).catch(()=>{})}
+async function copyCode(s,btn,box){try{const r=await fetch('/api/code/'+s.id);if(!r.ok)throw 0;flash(btn,(await copyText(await r.text()))?'Đã copy code':'Không copy được',{box})}catch{flash(btn,'Lỗi, thử lại')}}
+function copyCmd(s,btn,box){copyText(cmdOf(s)).then(ok=>flash(btn,ok?'Đã copy lệnh':'Không copy được',{box}));fetch('/api/copy/'+s.id,{method:'POST'}).catch(()=>{})}
 const rawLink=(s,cls)=>safeUrl(rawUrl(s))?el('a',{class:cls,href:safeUrl(rawUrl(s)),target:'_blank',rel:'noopener noreferrer',text:'Raw',onclick:(e)=>e.stopPropagation()}):'';
 
 function card(s,i){
@@ -52,10 +56,11 @@ const SRE=/^\/s\/([a-z0-9-]{2,40})$/;
 function openDlg(s,mode){
   const d=$('#dlg'),b=$('#dbody'),st=ST[s.status]||ST.working;b.replaceChildren();
   const fd=t=>new Date(t).toLocaleDateString('vi-VN'),rows=t=>String(t||'').split('\n').map(x=>x.trim()).filter(Boolean);
-  const cc=el('button',{class:'btn primary rp',type:'button',text:'Copy code',onclick:()=>copyCode(s,cc)});
-  const cl=el('button',{class:'btn rp',type:'button',text:'Copy loadstring',onclick:()=>copyCmd(s,cl)});
+  const lsb=D.raw_url&&s.show_cmd!==false?el('pre',{class:'cmd',text:cmdOf(s)}):null; /* khung lệnh loadstring: dash có thể tắt từng script (show_cmd) */
+  const cc=el('button',{class:'btn primary rp',type:'button',text:'Copy code',onclick:()=>copyCode(s,cc,pre)});
+  const cl=el('button',{class:'btn rp',type:'button',text:'Copy loadstring',onclick:()=>copyCmd(s,cl,lsb)});
   const lk=el('button',{class:'btn rp',type:'button',text:'Copy link',onclick:()=>copyText(location.origin+'/s/'+s.id).then(ok=>flash(lk,ok?'Đã copy link':'Không copy được'))});
-  const dl=el('a',{class:'btn rp',href:'/api/download/'+s.id,download:s.id+'.lua',text:'Download'});dl.addEventListener('click',()=>flash(dl,'✓ Đang tải xuống'));
+  const dl=el('a',{class:'btn rp',href:'/api/download/'+s.id,download:s.id+'.lua',text:'Download'});dl.addEventListener('click',()=>flash(dl,'Đang tải xuống',{kind:'dl'}));
   const pre=el('pre',{class:'cmd pvc',text:'Đang tải...'}),pw=el('div',{},el('div',{class:'pp-h',text:'Xem trước code'}),pre);
   const vw=el('div',{class:'vwrap'});
   fetch('/api/versions/'+s.id).then(r=>r.ok?r.json():[]).catch(()=>[]).then(list=>{
@@ -91,7 +96,7 @@ function openDlg(s,mode){
       ft.length?sec('Tính năng',el('ul',{class:'pp-feat'},...ft.map(t=>el('li',{},ic(IC.check),el('span',{text:t}))))):'',
       hw.length?sec('Hướng dẫn sử dụng',hw.length>1?el('ol',{class:'pp-steps'},...hw.map(t=>el('li',{},el('span',{text:t})))):el('p',{class:'howto',text:hw[0]})):'',
       kv.length?el('div',{class:'pp-kv'},...kv.map(([k,v])=>el('div',{class:'pp-r'},el('span',{text:k}),el('b',{text:v})))):'',
-      vw,pw,D.raw_url?el('pre',{class:'cmd',text:cmdOf(s)}):'',
+      vw,pw,lsb||'',
       el('div',{class:'pp-more'},lk,rawLink(s,'btn rp'),dl)),
     el('div',{class:'pp-bar'},cc,D.raw_url?cl:''));
   fetch('/api/preview/'+s.id).then(r=>r.ok?r.text():'').then(t=>{if(t)pre.textContent=t;else pw.remove()}).catch(()=>pw.remove());
